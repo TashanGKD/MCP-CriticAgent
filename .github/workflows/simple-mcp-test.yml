@@ -1,0 +1,166 @@
+name: 🧪 Complete MCP Tool Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_url:
+        description: '🎯 GitHub URL of the MCP tool to test'
+        required: true
+        default: 'https://github.com/upstash/context7'
+
+jobs:
+  test-mcp-tool:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      DASHSCOPE_BASE_URL: ${{ secrets.DASHSCOPE_BASE_URL }}
+      DASHSCOPE_MODEL: ${{ secrets.DASHSCOPE_MODEL }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+    - name: Install dependencies
+      run: uv sync
+        
+    - name: 🧪 Complete MCP Tool Testing
+      id: test_mcp
+      run: |
+        GITHUB_URL="${{ github.event.inputs.github_url }}"
+        
+        echo "🎯 开始完整 MCP 工具测试"
+        echo "📍 测试URL: $GITHUB_URL"
+        echo "🤖 智能测试模式: 已启用"
+        echo "⏱️ 超时时间: 600秒"
+        
+        # 检查AI配置
+        if [ -n "$OPENAI_API_KEY" ] || [ -n "$DASHSCOPE_API_KEY" ]; then
+          echo "✅ AI配置已检测到，将使用智能测试模式"
+          USE_SMART="--smart"
+        else
+          echo "⚠️ 未检测到AI配置，使用基础测试模式"
+          USE_SMART=""
+        fi
+        
+        # 执行完整测试
+        uv run python -m src.main test-url "$GITHUB_URL" --timeout 600 --verbose $USE_SMART || {
+          echo "❌ 测试失败，但继续生成报告"
+          exit_code=$?
+        }
+        
+        # 检查报告生成
+        REPORT_DIR="data/test_results/reports"
+        if [ -d "$REPORT_DIR" ]; then
+          LATEST_JSON=$(ls -t "$REPORT_DIR"/*.json 2>/dev/null | head -1)
+          LATEST_HTML=$(ls -t "$REPORT_DIR"/*.html 2>/dev/null | head -1)
+          
+          if [ -n "$LATEST_JSON" ]; then
+            echo "json_report=$LATEST_JSON" >> $GITHUB_OUTPUT
+            echo "✅ JSON报告: $LATEST_JSON"
+          fi
+          
+          if [ -n "$LATEST_HTML" ]; then
+            echo "html_report=$LATEST_HTML" >> $GITHUB_OUTPUT
+            echo "✅ HTML报告: $LATEST_HTML"
+          fi
+        else
+          echo "❌ 未找到报告目录"
+        fi
+      
+    - name: Upload Test Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-test-reports
+        path: data/test_results/
+        retention-days: 30
+    
+    - name: Setup Pages
+      if: always()
+      uses: actions/configure-pages@v4
+      with:
+        enablement: true
+    
+    - name: Prepare site
+      if: always()
+      run: |
+        mkdir -p _site
+        if [ -n "${{ steps.test_mcp.outputs.html_report }}" ] && [ -f "${{ steps.test_mcp.outputs.html_report }}" ]; then
+          cp "${{ steps.test_mcp.outputs.html_report }}" _site/index.html
+          echo "✅ 使用测试报告作为主页"
+        else
+          echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>测试结果</title></head><body><h1>MCP工具测试</h1><p>测试未能生成HTML报告，请查看构建产物中的详细日志。</p></body></html>" > _site/index.html
+          echo "⚠️ 生成占位页面"
+        fi
+
+    - name: Upload Pages artifact
+      if: always()
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: _site
+
+    - name: Deploy to GitHub Pages
+      if: always()
+      id: deployment
+      uses: actions/deploy-pages@v4
+      continue-on-error: true
+        
+    - name: Create Summary
+      if: always()
+      run: |
+        echo "# 🧪 MCP工具完整测试结果" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**测试URL:** \`${{ github.event.inputs.github_url }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**测试模式:** 完整测试（含AI智能分析）" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "${{ steps.deployment.outputs.page_url }}" ]; then
+          echo "## 🌐 在线测试报告" >> $GITHUB_STEP_SUMMARY
+          echo "[点击查看完整报告](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## 📄 测试报告" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ GitHub Pages 部署失败，请从构建产物中下载报告查看" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -n "${{ steps.test_mcp.outputs.json_report }}" ]; then
+          echo "## 📊 测试结果文件" >> $GITHUB_STEP_SUMMARY
+          echo "- JSON报告: \`${{ steps.test_mcp.outputs.json_report }}\`" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.test_mcp.outputs.html_report }}" ]; then
+            echo "- HTML报告: \`${{ steps.test_mcp.outputs.html_report }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## ⚠️ 测试状态" >> $GITHUB_STEP_SUMMARY
+          echo "测试过程中遇到问题，请查看上方日志了解详情。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "💾 完整测试数据已作为构建产物保存，可在Actions页面下载。" >> $GITHUB_STEP_SUMMARY

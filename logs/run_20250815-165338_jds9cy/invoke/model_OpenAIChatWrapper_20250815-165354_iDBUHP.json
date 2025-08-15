@@ -1,0 +1,62 @@
+{
+    "model_class": "OpenAIChatWrapper",
+    "timestamp": "20250815-165354",
+    "arguments": {
+        "temperature": 0.7,
+        "max_tokens": 1000,
+        "model": "qwen-plus",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个专业的MCP(Model Context Protocol)工具测试用例生成专家。\n\n你的任务是根据MCP工具的信息生成全面、实用的测试用例。\n\n## 工具信息输入格式:\n- 工具名称: [name]\n- 作者: [author] \n- 描述: [description]\n- 类别: [category]\n- 包名: [package_name]\n- 可用工具列表: [available_tools]\n- API密钥需求: [requires_api_key]\n\n## 测试用例生成原则:\n1. **基础连通性测试** - 验证工具是否正常启动和响应\n2. **功能性测试** - 测试每个可用工具的核心功能\n3. **参数验证测试** - 测试不同参数组合的处理\n4. **错误处理测试** - 测试异常输入和边界条件\n5. **性能测试** - 测试响应时间和资源使用\n\n## 输出格式要求:\n请以JSON格式输出测试用例列表，每个测试用例包含:\n```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"测试用例名称\",\n      \"description\": \"详细描述\",\n      \"tool_name\": \"要调用的工具名称\",\n      \"parameters\": {\"param1\": \"value1\", \"param2\": \"value2\"},\n      \"expected_type\": \"success|error|specific_content\",\n      \"expected_result\": \"期望的结果描述(可选)\",\n      \"priority\": \"high|normal|low\"\n    }\n  ]\n}\n```\n\n## 特殊考虑:\n- 对于需要API密钥的工具，生成对应的配置检查测试\n- 根据工具类别(开发工具、信息检索等)调整测试策略\n- 确保测试用例现实可行，避免需要外部资源的复杂测试\n\n现在请为给定的MCP工具生成测试用例。"
+            },
+            {
+                "role": "user",
+                "content": "## Conversation History\nuser: \n请为以下MCP工具生成测试用例:\n\n工具名称: 测试工具\n作者: 测试作者\n描述: 这是一个用于测试的MCP工具\n类别: 测试\n包名: @test/mcp-tool\nAPI密钥需求: 否\nAPI密钥列表: 无\n\n可用工具列表:\n[\n  {\n    \"name\": \"test_tool\",\n    \"description\": \"测试工具\"\n  },\n  {\n    \"name\": \"echo\",\n    \"description\": \"回声测试\"\n  }\n]\n\n请生成5个重要的测试用例来验证这个MCP工具的核心功能（不要超过5个）。\n"
+            }
+        ],
+        "stream": false
+    },
+    "response": {
+        "id": "chatcmpl-0851e372-8261-9a79-b880-8863919de21d",
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                    "content": "```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"基础连通性测试\",\n      \"description\": \"验证MCP工具是否能够正常启动并响应基本请求\",\n      \"tool_name\": \"test_tool\",\n      \"parameters\": {},\n      \"expected_type\": \"success\",\n      \"expected_result\": \"工具成功响应基础请求\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"回声测试\",\n      \"description\": \"验证echo工具是否能够正确回传输入内容\",\n      \"tool_name\": \"echo\",\n      \"parameters\": {\n        \"message\": \"Hello, MCP!\"\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"工具返回与输入相同的Hello, MCP!\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"空参数测试\",\n      \"description\": \"验证echo工具在未提供参数时的处理情况\",\n      \"tool_name\": \"echo\",\n      \"parameters\": {},\n      \"expected_type\": \"error\",\n      \"expected_result\": \"工具返回参数缺失错误\",\n      \"priority\": \"normal\"\n    },\n    {\n      \"name\": \"长文本回声测试\",\n      \"description\": \"验证echo工具对长输入的处理能力\",\n      \"tool_name\": \"echo\",\n      \"parameters\": {\n        \"message\": \"这是一段非常长的测试文本，用于验证工具在处理大量数据时的性能和稳定性。\"\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"工具正确返回相同的长文本\",\n      \"priority\": \"normal\"\n    },\n    {\n      \"name\": \"特殊字符回声测试\",\n      \"description\": \"验证echo工具是否能正确处理特殊字符\",\n      \"tool_name\": \"echo\",\n      \"parameters\": {\n        \"message\": \"!@#$%^&*()_+{}[]|\\\\:;\\\"'<>,.?/=\"\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"工具正确返回相同的特殊字符内容\",\n      \"priority\": \"low\"\n    }\n  ]\n}\n```",
+                    "refusal": null,
+                    "role": "assistant",
+                    "annotations": null,
+                    "audio": null,
+                    "function_call": null,
+                    "tool_calls": null
+                }
+            }
+        ],
+        "created": 1755248035,
+        "model": "qwen-plus",
+        "object": "chat.completion",
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+            "completion_tokens": 441,
+            "prompt_tokens": 552,
+            "total_tokens": 993,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+                "audio_tokens": null,
+                "cached_tokens": 0
+            }
+        }
+    },
+    "usage": {
+        "type": "chat",
+        "usage": {
+            "prompt_tokens": 552,
+            "completion_tokens": 441,
+            "total_tokens": 993
+        }
+    }
+}

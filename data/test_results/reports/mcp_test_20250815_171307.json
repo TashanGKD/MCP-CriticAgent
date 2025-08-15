@@ -1,0 +1,75 @@
+{
+  "test_url": "https://github.com/upstash/context7",
+  "test_time": "2025-08-15T17:13:07.718510",
+  "tool_info": {
+    "name": "Context7 MCP - 最新代码文档适用于任何提示",
+    "author": "upstash",
+    "package_name": "@upstash/context7-mcp",
+    "category": "开发工具\r\n推荐",
+    "description": "用于Context7的MCP服务器，提供最新、版本特定的库文档和代码示例，直接嵌入您的提示中。需要Node.js >= v18.0.0运行环境。",
+    "requires_api_key": false,
+    "api_requirements": []
+  },
+  "deployment_success": true,
+  "communication_success": true,
+  "available_tools_count": 2,
+  "available_tools": [
+    {
+      "name": "resolve-library-id",
+      "description": "Resolves a package/product name to a Context7-compatible library ID and returns a list of matching l..."
+    },
+    {
+      "name": "get-library-docs",
+      "description": "Fetches up-to-date documentation for a library. You must call 'resolve-library-id' first to obtain t..."
+    }
+  ],
+  "test_duration_seconds": 118.28789377212524,
+  "platform": "Windows",
+  "process_pid": 37244,
+  "server_id": "mcp_8dd2882b",
+  "test_results": [
+    {
+      "test_name": "基础连通性测试",
+      "success": true,
+      "duration": 4.294579744338989,
+      "error_message": null,
+      "output": "测试通过。工具成功响应了基础查询，返回了与React相关的多个库信息，符合预期的成功响应类型。实际响应中包含了多个Context7兼容的库ID，格式正确，内容完整。响应时间4.295秒在合理范围内，且没有出现错误信息。工具成功展示了其能够处理基本查询并返回结构化数据的能力。"
+    },
+    {
+      "test_name": "解析库ID测试",
+      "success": true,
+      "duration": 3.864131212234497,
+      "error_message": null,
+      "output": "测试通过。工具成功解析了用户提供的库名称 'next.js'，并返回了多个匹配的库信息，其中包含符合预期的 /vercel/next.js 库。响应中提供了多个Context7兼容的库ID，格式正确，内容完整。响应时间3.864秒在合理范围内，且未出现错误信息，表明工具能够正确处理解析库ID的请求。"
+    },
+    {
+      "test_name": "获取库文档测试",
+      "success": true,
+      "duration": 3.3678431510925293,
+      "error_message": null,
+      "output": "测试通过。工具成功获取了指定库 `/vercel/next.js` 的文档内容，且主题为 'routing' 的文档内容完整、结构清晰，涵盖了 Next.js 路由的核心概念和实现方式，包括动态路由、API 路由、并行路由、拦截路由、中间件路由等。文档内容格式规范，代码示例丰富，来源清晰，能够满足开发者对 Next.js 路由功能的理解和使用需求。响应时间3.368秒在合理范围内，且未出现错误信息。"
+    },
+    {
+      "test_name": "错误处理 - 无效库名",
+      "success": false,
+      "duration": 4.2654709815979,
+      "error_message": null,
+      "output": "测试失败。尽管工具成功返回了响应，且格式上符合预期，但并未返回明确的错误信息，而是返回了一组与输入库名 'invalid-library-name-123' 无关的库列表（如 Closure Library、Faker、Oops 等）。这表明工具未能正确识别无效的库名并进行错误处理，违反了测试用例期望的错误响应类型。此外，响应时间4.265秒虽然在可接受范围内，但由于功能逻辑错误，仍应判定为失败。"
+    },
+    {
+      "test_name": "参数验证 - 不完整的库ID",
+      "success": true,
+      "duration": 0.0025124549865722656,
+      "error_message": null,
+      "output": "测试通过。工具正确识别了输入参数的缺失（缺少必需的 `context7CompatibleLibraryID` 参数），并返回了符合预期的结构化错误信息。响应中 `success` 字段为 `false`，且 `error` 字段包含清晰的错误描述，指出参数缺失的具体原因，符合 JSON-RPC 2.0 的错误响应规范。响应时间极短（0.003 秒），表明工具在参数验证阶段即可快速失败，具备良好的错误处理性能。"
+    }
+  ],
+  "error_messages": [],
+  "summary": {
+    "overall_success": true,
+    "test_count": 5,
+    "passed_tests": 4,
+    "failed_tests": 1,
+    "success_rate": 0.8
+  }
+}

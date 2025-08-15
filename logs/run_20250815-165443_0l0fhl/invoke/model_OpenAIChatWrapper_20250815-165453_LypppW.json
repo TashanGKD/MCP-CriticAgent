@@ -1,0 +1,62 @@
+{
+    "model_class": "OpenAIChatWrapper",
+    "timestamp": "20250815-165453",
+    "arguments": {
+        "temperature": 0.7,
+        "max_tokens": 1000,
+        "model": "qwen-plus",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个专业的MCP(Model Context Protocol)工具测试用例生成专家。\n\n你的任务是根据MCP工具的信息生成全面、实用的测试用例。\n\n## 工具信息输入格式:\n- 工具名称: [name]\n- 作者: [author] \n- 描述: [description]\n- 类别: [category]\n- 包名: [package_name]\n- 可用工具列表: [available_tools]\n- API密钥需求: [requires_api_key]\n\n## 测试用例生成原则（最多5个测试用例）:\n1. **基础连通性测试** - 验证工具是否正常启动和响应\n2. **核心功能测试** - 测试最重要的1-2个工具功能\n3. **错误处理测试** - 测试一个常见的异常情况\n4. **参数验证测试**（可选） - 如果工具需要复杂参数\n5. **性能测试**（可选） - 如果是性能敏感的工具\n\n重要：只生成3-5个最重要的测试用例，避免冗余测试。\n\n## 输出格式要求:\n请以JSON格式输出测试用例列表，每个测试用例包含:\n```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"测试用例名称\",\n      \"description\": \"详细描述\",\n      \"tool_name\": \"要调用的工具名称\",\n      \"parameters\": {\"param1\": \"value1\", \"param2\": \"value2\"},\n      \"expected_type\": \"success|error|specific_content\",\n      \"expected_result\": \"期望的结果描述(可选)\",\n      \"priority\": \"high|normal|low\"\n    }\n  ]\n}\n```\n\n## 特殊考虑:\n- 对于需要API密钥的工具，生成对应的配置检查测试\n- 根据工具类别(开发工具、信息检索等)调整测试策略\n- 确保测试用例现实可行，避免需要外部资源的复杂测试\n\n现在请为给定的MCP工具生成测试用例。"
+            },
+            {
+                "role": "user",
+                "content": "## Conversation History\nuser: \n请为以下MCP工具生成测试用例:\n\n工具名称: Test MCP Tool\n作者: test\n描述: 测试工具，用于验证快速测试用例生成\n类别: 测试\n包名: @test/mcp\nAPI密钥需求: 否\nAPI密钥列表: 无\n\n可用工具列表:\n[\n  {\n    \"name\": \"tool1\",\n    \"description\": \"工具1\"\n  },\n  {\n    \"name\": \"tool2\",\n    \"description\": \"工具2\"\n  }\n]\n\n请生成3-5个最重要的测试用例来验证这个MCP工具的核心功能（严格不要超过5个）。优先选择最具代表性的测试场景。\n"
+            }
+        ],
+        "stream": false
+    },
+    "response": {
+        "id": "chatcmpl-10d09166-b6cc-98cb-b612-bd458dbffab6",
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                    "content": "```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"基础连通性测试\",\n      \"description\": \"验证MCP工具能够正确启动并返回可用工具列表。\",\n      \"tool_name\": \"tool1\",\n      \"parameters\": {},\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回可用工具列表，包含tool1和tool2。\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"工具1核心功能测试\",\n      \"description\": \"验证工具1的基本功能是否正常执行。\",\n      \"tool_name\": \"tool1\",\n      \"parameters\": {},\n      \"expected_type\": \"success\",\n      \"expected_result\": \"工具1执行成功，返回预期的描述信息。\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"工具2核心功能测试\",\n      \"description\": \"验证工具2的基本功能是否正常执行。\",\n      \"tool_name\": \"tool2\",\n      \"parameters\": {},\n      \"expected_type\": \"success\",\n      \"expected_result\": \"工具2执行成功，返回预期的描述信息。\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"无效工具调用测试\",\n      \"description\": \"尝试调用一个不存在的工具，验证错误处理机制。\",\n      \"tool_name\": \"invalid_tool\",\n      \"parameters\": {},\n      \"expected_type\": \"error\",\n      \"expected_result\": \"返回错误信息，提示工具不存在。\",\n      \"priority\": \"normal\"\n    }\n  ]\n}\n```",
+                    "refusal": null,
+                    "role": "assistant",
+                    "annotations": null,
+                    "audio": null,
+                    "function_call": null,
+                    "tool_calls": null
+                }
+            }
+        ],
+        "created": 1755248094,
+        "model": "qwen-plus",
+        "object": "chat.completion",
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+            "completion_tokens": 320,
+            "prompt_tokens": 595,
+            "total_tokens": 915,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+                "audio_tokens": null,
+                "cached_tokens": 0
+            }
+        }
+    },
+    "usage": {
+        "type": "chat",
+        "usage": {
+            "prompt_tokens": 595,
+            "completion_tokens": 320,
+            "total_tokens": 915
+        }
+    }
+}

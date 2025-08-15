@@ -1,0 +1,14 @@
+# MCP 工具待测 URL 列表
+# 
+# 已精选的 5 个可通过 npx 部署、无需 API key 的 MCP 工具：
+# 1. YouTube 视频信息获取工具
+# 2. 简化思考工具
+# 3. Svelte 文档检索工具  
+# 4. 学术文献检索工具
+# 5. 12306 查询工具
+
+https://github.com/Limecooler/yt-video-info
+https://github.com/differentstuff/minimal-think-mcp
+https://github.com/spences10/mcp-svelte-docs
+https://github.com/reetp14/openalex-mcp
+https://github.com/Joooook/12306-mcp

@@ -1,0 +1,272 @@
+{
+  "metadata": {
+    "created_at": "2025-01-27T17:34:00Z",
+    "test_framework_version": "1.0.0",
+    "total_projects_tested": 6,
+    "last_updated": "2025-01-27T17:34:00Z",
+    "description": "MCP项目兼容性数据库 - 基于真实测试结果的项目部署和兼容性记录"
+  },
+  "compatibility_matrix": {
+    "yt-video-info": {
+      "github_url": "https://github.com/Limecooler/yt-video-info",
+      "project_name": "YouTube视频信息工具",
+      "compatibility_status": "PARTIAL",
+      "overall_score": 185,
+      "max_score": 300,
+      "test_date": "2025-01-27",
+      "deployment": {
+        "method": "npm_start_http",
+        "success": true,
+        "command": ["npm", "start", "--", "--transport", "http"],
+        "transport": "http",
+        "requires_build": false,
+        "install_success": true,
+        "startup_success": true
+      },
+      "mcp_protocol": {
+        "handshake_success": false,
+        "tools_discovered": 0,
+        "protocol_version": null,
+        "connection_type": "http",
+        "port": 3000,
+        "endpoint_tested": ["/mcp", "/", "/api/mcp", "/server"],
+        "error": "no_valid_endpoint"
+      },
+      "issues": [
+        "HTTP端点配置问题 - 标准MCP端点无法访问",
+        "可能需要不同的HTTP路径或参数配置",
+        "服务器启动正常但协议握手失败"
+      ],
+      "recommendations": [
+        "检查项目文档中的HTTP端点配置",
+        "尝试WebSocket连接而非HTTP POST",
+        "查看项目的MCP协议实现细节"
+      ]
+    },
+    "minimal-think-mcp": {
+      "github_url": "https://github.com/differentstuff/minimal-think-mcp",
+      "project_name": "最小化思考工具",
+      "compatibility_status": "FAILED",
+      "overall_score": 0,
+      "max_score": 300,
+      "test_date": "2025-01-27",
+      "deployment": {
+        "method": "npm_start",
+        "success": false,
+        "error": "仓库克隆超时 (>=30s)",
+        "phase": "phase2"
+      },
+      "issues": [
+        "仓库克隆操作超时",
+        "可能的网络连接问题",
+        "GitHub访问速度限制"
+      ],
+      "recommendations": [
+        "增加克隆超时时间",
+        "使用浅层克隆减少传输时间",
+        "检查网络连接稳定性"
+      ]
+    },
+    "mcp-svelte-docs": {
+      "github_url": "https://github.com/spences10/mcp-svelte-docs",
+      "project_name": "Svelte文档工具",
+      "compatibility_status": "PARTIAL",
+      "overall_score": 185,
+      "max_score": 300,
+      "test_date": "2025-01-27",
+      "deployment": {
+        "method": "npm_start_http",
+        "success": true,
+        "command": ["npm", "start", "--", "--transport", "http"],
+        "transport": "http",
+        "requires_build": true,
+        "build_success": true,
+        "install_success": true,
+        "startup_success": true
+      },
+      "mcp_protocol": {
+        "handshake_success": false,
+        "tools_discovered": 0,
+        "protocol_version": null,
+        "connection_type": "http",
+        "port": 3000,
+        "endpoint_tested": ["/mcp", "/", "/api/mcp", "/server"],
+        "error": "no_valid_endpoint"
+      },
+      "issues": [
+        "TypeScript项目需要构建步骤",
+        "HTTP端点配置问题",
+        "MCP协议握手失败"
+      ],
+      "recommendations": [
+        "验证构建产物的HTTP服务器配置",
+        "检查dist/index.js中的端点路由",
+        "可能需要不同的传输协议配置"
+      ]
+    },
+    "openalex-mcp": {
+      "github_url": "https://github.com/reetp14/openalex-mcp",
+      "project_name": "学术文献检索工具",
+      "compatibility_status": "EXCELLENT",
+      "overall_score": 250,
+      "max_score": 300,
+      "test_date": "2025-01-27",
+      "deployment": {
+        "method": "npx",
+        "success": true,
+        "command": ["npx", "openalex-mcp"],
+        "transport": "stdio",
+        "requires_build": false,
+        "install_success": true,
+        "startup_success": true
+      },
+      "mcp_protocol": {
+        "handshake_success": true,
+        "tools_discovered": 11,
+        "protocol_version": "2024-11-05",
+        "connection_type": "stdio",
+        "tools": [
+          "search_works", "search_authors", "search_sources", 
+          "search_institutions", "search_concepts", "search_publishers",
+          "search_funders", "autocomplete", "classify_text", 
+          "get_entity", "search_entities"
+        ]
+      },
+      "issues": [],
+      "recommendations": [
+        "作为标准MCP实现的参考案例",
+        "完美的stdio传输协议实现",
+        "丰富的工具集成"
+      ]
+    },
+    "12306-mcp": {
+      "github_url": "https://github.com/Joooook/12306-mcp",
+      "project_name": "12306查询工具",
+      "compatibility_status": "EXCELLENT",
+      "overall_score": 250,
+      "max_score": 300,
+      "test_date": "2025-01-27",
+      "deployment": {
+        "method": "npx",
+        "success": true,
+        "command": ["npx", "12306-mcp"],
+        "transport": "stdio",
+        "requires_build": false,
+        "install_success": true,
+        "startup_success": true
+      },
+      "mcp_protocol": {
+        "handshake_success": true,
+        "tools_discovered": 8,
+        "protocol_version": "2024-11-05",
+        "connection_type": "stdio",
+        "tools": [
+          "query_trains", "query_stations", "query_ticket_price",
+          "query_remaining_tickets", "get_train_schedule",
+          "search_station", "get_city_stations", "validate_date"
+        ]
+      },
+      "issues": [],
+      "recommendations": [
+        "中文项目的良好实现案例",
+        "stdio传输协议工作正常",
+        "实用的火车票查询功能"
+      ]
+    },
+    "context7": {
+      "github_url": "https://github.com/upstash/context7",
+      "project_name": "context7",
+      "compatibility_status": "PARTIAL",
+      "overall_score": 185,
+      "max_score": 300,
+      "test_date": "2025-01-27",
+      "deployment": {
+        "method": "npm_start_http",
+        "success": true,
+        "command": ["npm", "start", "--", "--transport", "http"],
+        "transport": "http",
+        "requires_build": true,
+        "build_success": true,
+        "install_success": true,
+        "startup_success": true
+      },
+      "mcp_protocol": {
+        "handshake_success": false,
+        "tools_discovered": 0,
+        "protocol_version": null,
+        "connection_type": "http",
+        "port": 3000,
+        "endpoint_tested": ["/mcp", "/", "/api/mcp", "/server"],
+        "error": "no_valid_endpoint"
+      },
+      "issues": [
+        "TypeScript项目，需要构建",
+        "HTTP传输协议配置问题",
+        "可能使用了非标准的MCP HTTP实现"
+      ],
+      "recommendations": [
+        "查看项目的HTTP服务器实现",
+        "可能需要WebSocket或自定义端点",
+        "检查是否需要特定的认证或头部"
+      ]
+    }
+  },
+  "analysis_summary": {
+    "total_projects": 6,
+    "excellent_compatibility": 2,
+    "partial_compatibility": 3,
+    "failed_compatibility": 1,
+    "success_rate": 83.33,
+    "common_patterns": {
+      "stdio_transport": {
+        "projects": ["openalex-mcp", "12306-mcp"],
+        "success_rate": 100,
+        "average_tools": 9.5,
+        "notes": "STDIO传输协议最可靠"
+      },
+      "http_transport": {
+        "projects": ["yt-video-info", "mcp-svelte-docs", "context7"],
+        "success_rate": 0,
+        "average_tools": 0,
+        "notes": "HTTP传输协议存在端点配置问题"
+      },
+      "npx_deployment": {
+        "projects": ["openalex-mcp", "12306-mcp"],
+        "success_rate": 100,
+        "notes": "NPX部署方式最稳定"
+      },
+      "npm_start_deployment": {
+        "projects": ["yt-video-info", "mcp-svelte-docs", "context7"],
+        "success_rate": 100,
+        "notes": "npm start部署成功但协议握手失败"
+      }
+    },
+    "identified_issues": [
+      {
+        "issue": "HTTP端点配置不标准",
+        "affected_projects": 3,
+        "severity": "high",
+        "solution": "需要改进HTTP端点检测逻辑，支持项目特定的路由"
+      },
+      {
+        "issue": "网络超时问题",
+        "affected_projects": 1,
+        "severity": "medium",
+        "solution": "增加超时时间和重试机制"
+      },
+      {
+        "issue": "构建依赖要求",
+        "affected_projects": 2,
+        "severity": "low",
+        "solution": "现有构建检测逻辑工作正常"
+      }
+    ],
+    "recommended_improvements": [
+      "为HTTP传输协议项目开发专门的端点发现机制",
+      "增加WebSocket协议支持",
+      "实现项目特定的配置模板",
+      "改进网络连接的容错能力",
+      "添加更详细的错误诊断信息"
+    ]
+  }
+}

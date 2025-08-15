@@ -1,0 +1,7 @@
+工具名称,GitHub链接,部署方式,是否需要API密钥,功能分类
+YouTube视频信息工具,https://github.com/Limecooler/yt-video-info,npx,否,信息获取
+最小化思考工具,https://github.com/differentstuff/minimal-think-mcp,npx,否,思考辅助
+Svelte文档工具,https://github.com/spences10/mcp-svelte-docs,npx,否,文档检索
+学术文献检索工具,https://github.com/reetp14/openalex-mcp,npx,否,学术检索
+12306查询工具,https://github.com/Joooook/12306-mcp,npx,否,信息查询
+context7,https://github.com/upstash/context7,npx,否,信息查询
