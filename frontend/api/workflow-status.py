@@ -33,7 +33,7 @@ def handler(event, context):
     
     try:
         # 获取环境变量
-        github_token = os.getenv('GITHUB_TOKEN')
+        github_token = os.getenv('HUB_TOKEN')
         github_repo = os.getenv('GITHUB_REPOSITORY', 'gqy22/batch_mcp')
         
         if not github_token:

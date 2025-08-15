@@ -38,7 +38,7 @@
 
 ```bash
 # GitHub API Token (完全自动化必需)
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+HUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # AI服务API密钥 (用于GitHub Actions AI分析)
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -56,7 +56,7 @@ DASHSCOPE_MODEL=qwen-plus
 
 ```bash
 # GitHub API集成 (用于触发Actions)
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+HUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 GITHUB_REPOSITORY=gqy22/batch_mcp
 ```
 
@@ -78,7 +78,7 @@ git push origin main
 
 ### 步骤 2: 配置环境变量
 1. **GitHub Secrets**: 按上述清单配置所有必需的API密钥
-2. **Vercel Variables**: 配置GITHUB_TOKEN和GITHUB_REPOSITORY
+2. **Vercel Variables**: 配置HUB_TOKEN和GITHUB_REPOSITORY
 3. **验证配置**: 确保所有环境变量都正确设置
 
 ### 步骤 3: 部署到Vercel

@@ -53,7 +53,7 @@ def handler(request):
         if not mcp_url:
             return _json_response(400, {'success': False, 'error': 'URL is required (url or mcp_url)'})
 
-        github_token = os.getenv('GITHUB_TOKEN')
+        github_token = os.getenv('HUB_TOKEN')
         github_repo = os.getenv('GITHUB_REPOSITORY', 'gqy22/batch_mcp')
         if not github_token:
             return _json_response(500, {'success': False, 'error': 'GitHub token not configured'})

@@ -21,7 +21,7 @@
 
 ```
 # GitHub API Token (用于触发和查询workflow)
-GITHUB_TOKEN=ghp_your_github_personal_access_token
+HUB_TOKEN=ghp_your_github_personal_access_token
 
 # 原有的API密钥 (仅用于GitHub Actions)
 OPENAI_API_KEY=sk-your-openai-key
@@ -37,7 +37,7 @@ DASHSCOPE_MODEL=qwen-plus
 
 ```
 # GitHub集成 (仅用于触发Actions)
-GITHUB_TOKEN=ghp_your_github_personal_access_token
+HUB_TOKEN=ghp_your_github_personal_access_token
 GITHUB_REPOSITORY=gqy22/batch_mcp
 ```
 

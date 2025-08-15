@@ -25,14 +25,14 @@
    - 设置了环境变量引用
 
 3. **环境变量配置**：
-   - `GITHUB_TOKEN` - 需要在 Vercel Dashboard 中设置
+   - `HUB_TOKEN` - 需要在 Vercel Dashboard 中设置
    - `GITHUB_REPOSITORY` - 已硬编码为 "gqy22/batch_mcp"
 
 ## 🎯 **部署步骤**
 
 ### **Step 1: 确保 Vercel 环境变量配置**
 在 Vercel Dashboard 中设置：
-- `GITHUB_TOKEN` = `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`
+- `HUB_TOKEN` = `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`
 
 ### **Step 2: 提交代码到 GitHub**
 ```bash
@@ -73,7 +73,7 @@ git push origin main
    - 查看最新部署的构建日志
 
 2. **检查环境变量**：
-   - 确保 `GITHUB_TOKEN` 在 Vercel 中正确设置
+   - 确保 `HUB_TOKEN` 在 Vercel 中正确设置
    - 检查 Token 权限（需要 workflow 权限）
 
 3. **API 路径检查**：

@@ -17,8 +17,8 @@ def get_github_pages_result(run_id: str) -> Optional[Dict[str, Any]]:
         import urllib.error
         
         # 构造GitHub Pages URL（与 workflow 输出一致）
-        repo_owner = os.getenv('GITHUB_REPOSITORY', 'gqy22/batch_mcp').split('/')[0]
-        repo_name = os.getenv('GITHUB_REPOSITORY', 'gqy22/batch_mcp').split('/')[1]
+        repo_owner = os.getenv('GITHUB_REPOSITORY', 'gqy20/batch_mcp').split('/')[0]
+        repo_name = os.getenv('GITHUB_REPOSITORY', 'gqy20/batch_mcp').split('/')[1]
         pages_url = f"https://{repo_owner}.github.io/{repo_name}/test-results/{run_id}.json"
         
         # 发起HTTP请求

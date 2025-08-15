@@ -22,7 +22,7 @@
     }
   ],
   "env": {
-    "GITHUB_TOKEN": "@github_token",
+    "HUB_TOKEN": "@github_token",
     "GITHUB_REPOSITORY": "gqy22/batch_mcp"
   }
 }

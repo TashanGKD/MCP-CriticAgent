@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     // 获取环境变量
-    const githubToken = process.env.GITHUB_TOKEN
+    const githubToken = process.env.HUB_TOKEN
     const githubRepo = process.env.GITHUB_REPOSITORY || 'gqy22/batch_mcp'
     
     if (!githubToken) {
