@@ -101,35 +101,62 @@ jobs:
         path: data/test_results/
         retention-days: 30
     
-    - name: Setup Pages
+    - name: Check Pages availability
       if: always()
+      id: check_pages
+      run: |
+        # 检查是否可以访问 Pages API
+        if curl -s -H "Authorization: token ${{ github.token }}" \
+           "https://api.github.com/repos/${{ github.repository }}" | \
+           grep -q '"has_pages": true'; then
+          echo "pages_available=true" >> $GITHUB_OUTPUT
+          echo "✅ Pages 功能可用"
+        else
+          echo "pages_available=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Pages 功能不可用，将跳过 Pages 部署"
+        fi
+
+    - name: Setup Pages
+      if: always() && steps.check_pages.outputs.pages_available == 'true'
       uses: actions/configure-pages@v4
-      with:
-        enablement: true
     
     - name: Prepare site
-      if: always()
+      if: always() && steps.check_pages.outputs.pages_available == 'true'
       run: |
         mkdir -p _site
         if [ -n "${{ steps.test_mcp.outputs.html_report }}" ] && [ -f "${{ steps.test_mcp.outputs.html_report }}" ]; then
           cp "${{ steps.test_mcp.outputs.html_report }}" _site/index.html
           echo "✅ 使用测试报告作为主页"
         else
-          echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>测试结果</title></head><body><h1>MCP工具测试</h1><p>测试未能生成HTML报告，请查看构建产物中的详细日志。</p></body></html>" > _site/index.html
+          echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>测试结果</title></head><body><h1>MCP工具测试</h1><p>测试未能生成HTML报告，请查看构建产物中的详细日志。</p><p>时间: $(date)</p></body></html>" > _site/index.html
           echo "⚠️ 生成占位页面"
         fi
+        
+        # 确保目录权限正确
+        chmod -R 755 _site
 
     - name: Upload Pages artifact
-      if: always()
+      if: always() && steps.check_pages.outputs.pages_available == 'true'
       uses: actions/upload-pages-artifact@v3
       with:
         path: _site
 
     - name: Deploy to GitHub Pages
-      if: always()
+      if: always() && steps.check_pages.outputs.pages_available == 'true'
       id: deployment
       uses: actions/deploy-pages@v4
       continue-on-error: true
+      
+    - name: Pages deployment status
+      if: always()
+      run: |
+        if [ "${{ steps.deployment.outcome }}" = "success" ]; then
+          echo "✅ GitHub Pages 部署成功"
+          echo "📄 测试报告地址: ${{ steps.deployment.outputs.page_url }}"
+        else
+          echo "⚠️ GitHub Pages 部署失败，但不影响测试结果"
+          echo "📦 请从构建产物下载完整测试报告"
+        fi
         
     - name: Create Summary
       if: always()
@@ -140,13 +167,20 @@ jobs:
         echo "**测试模式:** 完整测试（含AI智能分析）" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        if [ -n "${{ steps.deployment.outputs.page_url }}" ]; then
-          echo "## 🌐 在线测试报告" >> $GITHUB_STEP_SUMMARY
-          echo "[点击查看完整报告](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+        # 检查 Pages 部署状态
+        if [ "${{ steps.check_pages.outputs.pages_available }}" = "true" ]; then
+          if [ "${{ steps.deployment.outcome }}" = "success" ] && [ -n "${{ steps.deployment.outputs.page_url }}" ]; then
+            echo "## 🌐 在线测试报告" >> $GITHUB_STEP_SUMMARY
+            echo "[点击查看完整报告](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 📄 测试报告" >> $GITHUB_STEP_SUMMARY
+            echo "📦 GitHub Pages 部署遇到问题，请从下方构建产物中下载完整报告" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
         else
           echo "## 📄 测试报告" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ GitHub Pages 部署失败，请从构建产物中下载报告查看" >> $GITHUB_STEP_SUMMARY
+          echo "📦 GitHub Pages 功能不可用，请从下方构建产物中下载完整报告" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         fi
         
