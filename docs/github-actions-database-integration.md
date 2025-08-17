@@ -7,11 +7,11 @@
 
 在您的GitHub仓库中，前往 `Settings` > `Secrets and variables` > `Actions`，添加以下secrets：
 
-### Supabase数据库配置
+### Supabase数据库配置（必需）
 - **`SUPABASE_URL`**: 您的Supabase项目URL（例如：`https://your-project.supabase.co`）
 - **`SUPABASE_SERVICE_ROLE_KEY`**: 您的Supabase service_role密钥（**注意：必须是service_role密钥，不是anon密钥**）
 
-### AI智能测试配置（可选）
+### AI智能测试配置（可选，但推荐）
 - **`OPENAI_API_KEY`**: OpenAI API密钥
 - **`OPENAI_BASE_URL`**: OpenAI API基础URL（可选）
 - **`OPENAI_MODEL`**: 使用的OpenAI模型（可选，默认为gpt-4）

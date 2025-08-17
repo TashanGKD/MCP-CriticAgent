@@ -120,7 +120,25 @@ jobs:
         cat > verify_db_storage.py << 'EOF'
         #!/usr/bin/env python3
         import sys
+        import os
         sys.path.append('src')
+        
+        print(f"🐍 Python版本: {sys.version}")
+        print(f"📁 当前工作目录: {os.getcwd()}")
+        print(f"📂 Python路径: {sys.path}")
+        
+        # 检查环境变量
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        print(f"🌐 SUPABASE_URL: {'已配置' if supabase_url else '未配置'}")
+        print(f"🔑 SUPABASE_SERVICE_ROLE_KEY: {'已配置' if supabase_key else '未配置'}")
+        
+        try:
+            from supabase import create_client, Client
+            print("✅ Supabase库导入成功")
+        except ImportError as e:
+            print(f"❌ Supabase库导入失败: {e}")
+            sys.exit(1)
         
         try:
             from src.core.supabase_connector import SupabaseConnector
@@ -128,9 +146,11 @@ jobs:
             import json
             
             connector = SupabaseConnector()
+            print("✅ SupabaseConnector初始化成功")
             
             # 获取最近的测试报告
             recent_cutoff = datetime.now() - timedelta(hours=1)
+            print(f"⏰ 查询时间范围: {recent_cutoff.isoformat()} 至现在")
             
             # 查询各表的记录数
             tables_info = {}
@@ -184,14 +204,18 @@ jobs:
                     
             except Exception as e:
                 print(f"❌ 查询数据库失败: {e}")
+                import traceback
+                traceback.print_exc()
                 sys.exit(1)
                 
         except Exception as e:
             print(f"❌ 数据库连接失败: {e}")
+            import traceback
+            traceback.print_exc()
             sys.exit(1)
         EOF
         
-        python verify_db_storage.py || {
+        uv run python verify_db_storage.py || {
           echo "database_verification_failed=true" >> $GITHUB_OUTPUT
           echo "⚠️ 数据库验证失败，但不影响整体测试"
         }
