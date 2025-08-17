@@ -1,0 +1,62 @@
+{
+    "model_class": "OpenAIChatWrapper",
+    "timestamp": "20250817-001647",
+    "arguments": {
+        "temperature": 0.7,
+        "max_tokens": 1000,
+        "model": "qwen-plus",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个专业的MCP(Model Context Protocol)工具测试用例生成专家。\n\n你的任务是根据MCP工具的信息生成全面、实用的测试用例。\n\n## 工具信息输入格式:\n- 工具名称: [name]\n- 作者: [author] \n- 描述: [description]\n- 类别: [category]\n- 包名: [package_name]\n- 可用工具列表: [available_tools]\n- API密钥需求: [requires_api_key]\n\n## 测试用例生成原则（最多5个测试用例）:\n1. **基础连通性测试** - 验证工具是否正常启动和响应\n2. **核心功能测试** - 测试最重要的1-2个工具功能\n3. **错误处理测试** - 测试一个常见的异常情况\n4. **参数验证测试**（可选） - 如果工具需要复杂参数\n5. **性能测试**（可选） - 如果是性能敏感的工具\n\n重要：只生成3-5个最重要的测试用例，避免冗余测试。\n\n## 输出格式要求:\n请以JSON格式输出测试用例列表，每个测试用例包含:\n```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"测试用例名称\",\n      \"description\": \"详细描述\",\n      \"tool_name\": \"要调用的工具名称\",\n      \"parameters\": {\"param1\": \"value1\", \"param2\": \"value2\"},\n      \"expected_type\": \"success|error|specific_content\",\n      \"expected_result\": \"期望的结果描述(可选)\",\n      \"priority\": \"high|normal|low\"\n    }\n  ]\n}\n```\n\n## 特殊考虑:\n- 对于需要API密钥的工具，生成对应的配置检查测试\n- 根据工具类别(开发工具、信息检索等)调整测试策略\n- 确保测试用例现实可行，避免需要外部资源的复杂测试\n\n现在请为给定的MCP工具生成测试用例。"
+            },
+            {
+                "role": "user",
+                "content": "## Conversation History\nuser: \n请为以下MCP工具生成测试用例:\n\n工具名称: Context7 MCP - 最新代码文档适用于任何提示\n作者: upstash\n描述: 用于Context7的MCP服务器，提供最新、版本特定的库文档和代码示例，直接嵌入您的提示中。需要Node.js >= v18.0.0运行环境。\n类别: 开发工具\r\n推荐\n包名: @upstash/context7-mcp\nAPI密钥需求: 否\nAPI密钥列表: 无\n\n可用工具列表:\n[\n  {\n    \"name\": \"resolve-library-id\",\n    \"description\": \"Resolves a package/product name to a Context7-compatible library ID and returns a list of matching libraries.\\n\\nYou MUST call this function before 'get-library-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.\\n\\nSelection Process:\\n1. Analyze the query to understand what library/package the user is looking for\\n2. Return the most relevant match based on:\\n- Name similarity to the query (exact matches prioritized)\\n- Description relevance to the query's intent\\n- Documentation coverage (prioritize libraries with higher Code Snippet counts)\\n- Trust score (consider libraries with scores of 7-10 more authoritative)\\n\\nResponse Format:\\n- Return the selected library ID in a clearly marked section\\n- Provide a brief explanation for why this library was chosen\\n- If multiple good matches exist, acknowledge this but proceed with the most relevant one\\n- If no good matches exist, clearly state this and suggest query refinements\\n\\nFor ambiguous queries, request clarification before proceeding with a best-guess match.\",\n    \"inputSchema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"libraryName\": {\n          \"type\": \"string\",\n          \"description\": \"Library name to search for and retrieve a Context7-compatible library ID.\"\n        }\n      },\n      \"required\": [\n        \"libraryName\"\n      ],\n      \"additionalProperties\": false,\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\"\n    }\n  },\n  {\n    \"name\": \"get-library-docs\",\n    \"description\": \"Fetches up-to-date documentation for a library. You must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.\",\n    \"inputSchema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"context7CompatibleLibraryID\": {\n          \"type\": \"string\",\n          \"description\": \"Exact Context7-compatible library ID (e.g., '/mongodb/docs', '/vercel/next.js', '/supabase/supabase', '/vercel/next.js/v14.3.0-canary.87') retrieved from 'resolve-library-id' or directly from user query in the format '/org/project' or '/org/project/version'.\"\n        },\n        \"topic\": {\n          \"type\": \"string\",\n          \"description\": \"Topic to focus documentation on (e.g., 'hooks', 'routing').\"\n        },\n        \"tokens\": {\n          \"type\": \"number\",\n          \"description\": \"Maximum number of tokens of documentation to retrieve (default: 10000). Higher values provide more context but consume more tokens.\"\n        }\n      },\n      \"required\": [\n        \"context7CompatibleLibraryID\"\n      ],\n      \"additionalProperties\": false,\n      \"$schema\": \"http://json-schema.org/draft-07/schema#\"\n    }\n  }\n]\n\n请生成3-5个最重要的测试用例来验证这个MCP工具的核心功能（严格不要超过5个）。优先选择最具代表性的测试场景。\n"
+            }
+        ],
+        "stream": false
+    },
+    "response": {
+        "id": "chatcmpl-92ff5c1c-53fa-90b6-af13-fabadb522d04",
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                    "content": "```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"基础连通性测试\",\n      \"description\": \"验证MCP服务器是否正常启动并能够响应基本请求。\",\n      \"tool_name\": \"resolve-library-id\",\n      \"parameters\": {\n        \"libraryName\": \"dummy-library\"\n      },\n      \"expected_type\": \"error\",\n      \"expected_result\": \"明确提示无法找到匹配的库或建议查询优化。\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"解析有效库ID测试\",\n      \"description\": \"测试resolve-library-id工具是否能正确解析一个常见库（如react）的Context7兼容库ID。\",\n      \"tool_name\": \"resolve-library-id\",\n      \"parameters\": {\n        \"libraryName\": \"react\"\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回类似 '/facebook/react' 的库ID以及选择原因的描述。\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"获取库文档测试\",\n      \"description\": \"使用resolve-library-id返回的库ID调用get-library-docs，验证文档是否能成功获取。\",\n      \"tool_name\": \"get-library-docs\",\n      \"parameters\": {\n        \"context7CompatibleLibraryID\": \"/facebook/react\",\n        \"topic\": \"hooks\",\n        \"tokens\": 10000\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回关于React hooks的最新文档内容。\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"无效库名错误处理测试\",\n      \"description\": \"测试resolve-library-id在提供完全不存在的库名时的错误处理能力。\",\n      \"tool_name\": \"resolve-library-id\",\n      \"parameters\": {\n        \"libraryName\": \"nonexistent-library-123\"\n      },\n      \"expected_type\": \"error\",\n      \"expected_result\": \"明确提示没有找到匹配的库，并建议优化查询关键词。\",\n      \"priority\": \"normal\"\n    },\n    {\n      \"name\": \"直接提供库ID的文档获取测试\",\n      \"description\": \"验证用户直接提供格式为'/org/project'的库ID时，get-library-docs能否直接使用该ID获取文档。\",\n      \"tool_name\": \"get-library-docs\",\n      \"parameters\": {\n        \"context7CompatibleLibraryID\": \"/vercel/next.js\",\n        \"topic\": \"routing\",\n        \"tokens\": 8000\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回Next.js路由相关功能的最新文档内容。\",\n      \"priority\": \"normal\"\n    }\n  ]\n}\n```",
+                    "refusal": null,
+                    "role": "assistant",
+                    "annotations": null,
+                    "audio": null,
+                    "function_call": null,
+                    "tool_calls": null
+                }
+            }
+        ],
+        "created": 1755361006,
+        "model": "qwen-plus",
+        "object": "chat.completion",
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+            "completion_tokens": 564,
+            "prompt_tokens": 1270,
+            "total_tokens": 1834,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+                "audio_tokens": null,
+                "cached_tokens": 0
+            }
+        }
+    },
+    "usage": {
+        "type": "chat",
+        "usage": {
+            "prompt_tokens": 1270,
+            "completion_tokens": 564,
+            "total_tokens": 1834
+        }
+    }
+}

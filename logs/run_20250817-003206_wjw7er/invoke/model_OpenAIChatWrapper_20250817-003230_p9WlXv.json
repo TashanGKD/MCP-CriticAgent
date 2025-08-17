@@ -1,0 +1,62 @@
+{
+    "model_class": "OpenAIChatWrapper",
+    "timestamp": "20250817-003230",
+    "arguments": {
+        "temperature": 0.7,
+        "max_tokens": 1000,
+        "model": "qwen-plus",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个专业的MCP(Model Context Protocol)工具测试用例生成专家。\n\n你的任务是根据MCP工具的信息生成全面、实用的测试用例。\n\n## 工具信息输入格式:\n- 工具名称: [name]\n- 作者: [author] \n- 描述: [description]\n- 类别: [category]\n- 包名: [package_name]\n- 可用工具列表: [available_tools]\n- API密钥需求: [requires_api_key]\n\n## 测试用例生成原则（最多5个测试用例）:\n1. **基础连通性测试** - 验证工具是否正常启动和响应\n2. **核心功能测试** - 测试最重要的1-2个工具功能\n3. **错误处理测试** - 测试一个常见的异常情况\n4. **参数验证测试**（可选） - 如果工具需要复杂参数\n5. **性能测试**（可选） - 如果是性能敏感的工具\n\n重要：只生成3-5个最重要的测试用例，避免冗余测试。\n\n## 输出格式要求:\n请以JSON格式输出测试用例列表，每个测试用例包含:\n```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"测试用例名称\",\n      \"description\": \"详细描述\",\n      \"tool_name\": \"要调用的工具名称\",\n      \"parameters\": {\"param1\": \"value1\", \"param2\": \"value2\"},\n      \"expected_type\": \"success|error|specific_content\",\n      \"expected_result\": \"期望的结果描述(可选)\",\n      \"priority\": \"high|normal|low\"\n    }\n  ]\n}\n```\n\n## 特殊考虑:\n- 对于需要API密钥的工具，生成对应的配置检查测试\n- 根据工具类别(开发工具、信息检索等)调整测试策略\n- 确保测试用例现实可行，避免需要外部资源的复杂测试\n\n现在请为给定的MCP工具生成测试用例。"
+            },
+            {
+                "role": "user",
+                "content": "## Conversation History\nuser: \n请为以下MCP工具生成测试用例:\n\n工具名称: Fetcher MCP\n作者: jae-jae\n描述: 用于通过 Playwright 无头浏览器获取网页内容的 MCP 服务器。支持智能内容提取和多样的输出格式。需要通过 'npx playwright install chromium' 安装 Playwright 浏览器。\n类别: 实用工具\n包名: fetcher-mcp\nAPI密钥需求: 否\nAPI密钥列表: 无\n\n可用工具列表:\n[\n  {\n    \"name\": \"fetch_url\",\n    \"description\": \"Retrieve web page content from a specified URL\",\n    \"inputSchema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"url\": {\n          \"type\": \"string\",\n          \"description\": \"URL to fetch\"\n        },\n        \"timeout\": {\n          \"type\": \"number\",\n          \"description\": \"Page loading timeout in milliseconds, default is 30000 (30 seconds)\"\n        },\n        \"waitUntil\": {\n          \"type\": \"string\",\n          \"description\": \"Specifies when navigation is considered complete, options: 'load', 'domcontentloaded', 'networkidle', 'commit', default is 'load'\"\n        },\n        \"extractContent\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to intelligently extract the main content, default is true\"\n        },\n        \"maxLength\": {\n          \"type\": \"number\",\n          \"description\": \"Maximum length of returned content (in characters), default is no limit\"\n        },\n        \"returnHtml\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to return HTML content instead of Markdown, default is false\"\n        },\n        \"waitForNavigation\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to wait for additional navigation after initial page load (useful for sites with anti-bot verification), default is false\"\n        },\n        \"navigationTimeout\": {\n          \"type\": \"number\",\n          \"description\": \"Maximum time to wait for additional navigation in milliseconds, default is 10000 (10 seconds)\"\n        },\n        \"disableMedia\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to disable media resources (images, stylesheets, fonts, media), default is true\"\n        },\n        \"debug\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to enable debug mode (showing browser window), overrides the --debug command line flag if specified\"\n        }\n      },\n      \"required\": [\n        \"url\"\n      ]\n    }\n  },\n  {\n    \"name\": \"fetch_urls\",\n    \"description\": \"Retrieve web page content from multiple specified URLs\",\n    \"inputSchema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"urls\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"description\": \"Array of URLs to fetch\"\n        },\n        \"timeout\": {\n          \"type\": \"number\",\n          \"description\": \"Page loading timeout in milliseconds, default is 30000 (30 seconds)\"\n        },\n        \"waitUntil\": {\n          \"type\": \"string\",\n          \"description\": \"Specifies when navigation is considered complete, options: 'load', 'domcontentloaded', 'networkidle', 'commit', default is 'load'\"\n        },\n        \"extractContent\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to intelligently extract the main content, default is true\"\n        },\n        \"maxLength\": {\n          \"type\": \"number\",\n          \"description\": \"Maximum length of returned content (in characters), default is no limit\"\n        },\n        \"returnHtml\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to return HTML content instead of Markdown, default is false\"\n        },\n        \"waitForNavigation\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to wait for additional navigation after initial page load (useful for sites with anti-bot verification), default is false\"\n        },\n        \"navigationTimeout\": {\n          \"type\": \"number\",\n          \"description\": \"Maximum time to wait for additional navigation in milliseconds, default is 10000 (10 seconds)\"\n        },\n        \"disableMedia\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to disable media resources (images, stylesheets, fonts, media), default is true\"\n        },\n        \"debug\": {\n          \"type\": \"boolean\",\n          \"description\": \"Whether to enable debug mode (showing browser window), overrides the --debug command line flag if specified\"\n        }\n      },\n      \"required\": [\n        \"urls\"\n      ]\n    }\n  }\n]\n\n请生成3-5个最重要的测试用例来验证这个MCP工具的核心功能（严格不要超过5个）。优先选择最具代表性的测试场景。\n"
+            }
+        ],
+        "stream": false
+    },
+    "response": {
+        "id": "chatcmpl-f430c389-07a0-9831-8d9a-06d32e02e8d5",
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                    "content": "```json\n{\n  \"test_cases\": [\n    {\n      \"name\": \"基础连通性测试\",\n      \"description\": \"验证工具是否可以成功启动并响应基本请求。\",\n      \"tool_name\": \"fetch_url\",\n      \"parameters\": {\n        \"url\": \"https://example.com\"\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"成功返回网页内容\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"单个URL获取测试\",\n      \"description\": \"测试工具是否能正确通过 fetch_url 获取指定URL的网页内容。\",\n      \"tool_name\": \"fetch_url\",\n      \"parameters\": {\n        \"url\": \"https://example.com\",\n        \"timeout\": 30000,\n        \"waitUntil\": \"load\",\n        \"extractContent\": true\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回指定网页的提取内容\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"多个URL获取测试\",\n      \"description\": \"测试工具是否能正确通过 fetch_urls 同时处理多个URL并返回对应内容。\",\n      \"tool_name\": \"fetch_urls\",\n      \"parameters\": {\n        \"urls\": [\"https://example.com\", \"https://example.org\"],\n        \"timeout\": 30000,\n        \"extractContent\": true\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回两个网页的提取内容\",\n      \"priority\": \"high\"\n    },\n    {\n      \"name\": \"错误处理测试 - 无效URL\",\n      \"description\": \"测试工具在提供无效URL时是否能正确处理错误并返回提示。\",\n      \"tool_name\": \"fetch_url\",\n      \"parameters\": {\n        \"url\": \"https://invalid-url-that-does-not-exist.com\",\n        \"timeout\": 10000\n      },\n      \"expected_type\": \"error\",\n      \"expected_result\": \"返回超时或连接失败错误\",\n      \"priority\": \"normal\"\n    },\n    {\n      \"name\": \"参数验证测试 - 超长内容限制\",\n      \"description\": \"测试工具是否能正确应用 maxLength 参数限制返回内容长度。\",\n      \"tool_name\": \"fetch_url\",\n      \"parameters\": {\n        \"url\": \"https://example.com\",\n        \"maxLength\": 100\n      },\n      \"expected_type\": \"success\",\n      \"expected_result\": \"返回的内容长度不超过100个字符\",\n      \"priority\": \"normal\"\n    }\n  ]\n}\n```",
+                    "refusal": null,
+                    "role": "assistant",
+                    "annotations": null,
+                    "audio": null,
+                    "function_call": null,
+                    "tool_calls": null
+                }
+            }
+        ],
+        "created": 1755361950,
+        "model": "qwen-plus",
+        "object": "chat.completion",
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+            "completion_tokens": 543,
+            "prompt_tokens": 1478,
+            "total_tokens": 2021,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+                "audio_tokens": null,
+                "cached_tokens": 0
+            }
+        }
+    },
+    "usage": {
+        "type": "chat",
+        "usage": {
+            "prompt_tokens": 1478,
+            "completion_tokens": 543,
+            "total_tokens": 2021
+        }
+    }
+}

@@ -29,7 +29,21 @@ sys.path.insert(0, str(project_root))
 from src.utils.csv_parser import get_mcp_parser, MCPToolInfo
 from src.core.simple_mcp_deployer import get_simple_mcp_deployer
 from src.core.url_mcp_processor import get_url_mcp_processor
-from src.core.report_generator import generate_test_report, TestResult
+from src.core.enhanced_report_generator import generate_test_report
+
+# 兼容性导入：保持原有TestResult接口
+try:
+    from src.core.report_generator import TestResult
+except ImportError:
+    # 如果原始TestResult不可用，创建一个简单的替代
+    class TestResult:
+        def __init__(self, test_name: str, success: bool, duration: float, 
+                     error_message: str = None, output: str = None):
+            self.test_name = test_name
+            self.success = success  
+            self.duration = duration
+            self.error_message = error_message
+            self.output = output
 
 # 智能代理模块（可选导入）
 try:
@@ -155,7 +169,7 @@ def test_single_url(
                     test_success=success,
                     duration=time.time() - server_info.start_time,
                     test_results=test_results,
-                    formats=['json', 'html']
+                    formats=['json', 'html', 'database']
                 )
 
                 if not report_files:

@@ -1,0 +1,228 @@
+{
+  "report_id": "bdd24c11-de57-4280-ba69-21c6659c5ada",
+  "created_at": "2025-08-17T00:07:38.524846",
+  "updated_at": "2025-08-17T00:07:38.524846",
+  "metadata": {
+    "session_id": "34120285-bf70-41da-9313-432ada31b7b5",
+    "test_environment": "local",
+    "trigger_source": "manual",
+    "operator": null,
+    "tags": [
+      "basic",
+      "mcp-test"
+    ]
+  },
+  "tool_info": {
+    "name": "Fetcher MCP",
+    "author": "jae-jae",
+    "github_url": "https://github.com/jae-jae/fetcher-mcp",
+    "package_name": "fetcher-mcp",
+    "category": "实用工具",
+    "description": "用于通过 Playwright 无头浏览器获取网页内容的 MCP 服务器。支持智能内容提取和多样的输出格式。需要通过 'npx playwright install chromium' 安装 Playwright 浏览器。",
+    "version": null,
+    "requires_api_key": false,
+    "api_requirements": [],
+    "language": "Unknown",
+    "license": null,
+    "stars": null,
+    "last_updated": null
+  },
+  "deployment": {
+    "status": "success",
+    "start_time": "2025-08-17T00:07:37.500126",
+    "end_time": "2025-08-17T00:07:38.524846",
+    "duration_seconds": 0.019411563873291016,
+    "package_manager": "npm",
+    "deployment_method": "local",
+    "process_id": 33340,
+    "server_id": "mcp_d98780cc",
+    "port": null,
+    "error_details": null,
+    "resource_usage": {
+      "memory_mb": 6.8359375,
+      "cpu_percent": 0.0,
+      "num_threads": 3,
+      "create_time": 1755360452.2191956
+    }
+  },
+  "available_tools": [
+    {
+      "name": "fetch_url",
+      "description": "Retrieve web page content from a specified URL",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL to fetch"
+          },
+          "timeout": {
+            "type": "number",
+            "description": "Page loading timeout in milliseconds, default is 30000 (30 seconds)"
+          },
+          "waitUntil": {
+            "type": "string",
+            "description": "Specifies when navigation is considered complete, options: 'load', 'domcontentloaded', 'networkidle', 'commit', default is 'load'"
+          },
+          "extractContent": {
+            "type": "boolean",
+            "description": "Whether to intelligently extract the main content, default is true"
+          },
+          "maxLength": {
+            "type": "number",
+            "description": "Maximum length of returned content (in characters), default is no limit"
+          },
+          "returnHtml": {
+            "type": "boolean",
+            "description": "Whether to return HTML content instead of Markdown, default is false"
+          },
+          "waitForNavigation": {
+            "type": "boolean",
+            "description": "Whether to wait for additional navigation after initial page load (useful for sites with anti-bot verification), default is false"
+          },
+          "navigationTimeout": {
+            "type": "number",
+            "description": "Maximum time to wait for additional navigation in milliseconds, default is 10000 (10 seconds)"
+          },
+          "disableMedia": {
+            "type": "boolean",
+            "description": "Whether to disable media resources (images, stylesheets, fonts, media), default is true"
+          },
+          "debug": {
+            "type": "boolean",
+            "description": "Whether to enable debug mode (showing browser window), overrides the --debug command line flag if specified"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "output_schema": {},
+      "category": "general",
+      "required_permissions": []
+    },
+    {
+      "name": "fetch_urls",
+      "description": "Retrieve web page content from multiple specified URLs",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to fetch"
+          },
+          "timeout": {
+            "type": "number",
+            "description": "Page loading timeout in milliseconds, default is 30000 (30 seconds)"
+          },
+          "waitUntil": {
+            "type": "string",
+            "description": "Specifies when navigation is considered complete, options: 'load', 'domcontentloaded', 'networkidle', 'commit', default is 'load'"
+          },
+          "extractContent": {
+            "type": "boolean",
+            "description": "Whether to intelligently extract the main content, default is true"
+          },
+          "maxLength": {
+            "type": "number",
+            "description": "Maximum length of returned content (in characters), default is no limit"
+          },
+          "returnHtml": {
+            "type": "boolean",
+            "description": "Whether to return HTML content instead of Markdown, default is false"
+          },
+          "waitForNavigation": {
+            "type": "boolean",
+            "description": "Whether to wait for additional navigation after initial page load (useful for sites with anti-bot verification), default is false"
+          },
+          "navigationTimeout": {
+            "type": "number",
+            "description": "Maximum time to wait for additional navigation in milliseconds, default is 10000 (10 seconds)"
+          },
+          "disableMedia": {
+            "type": "boolean",
+            "description": "Whether to disable media resources (images, stylesheets, fonts, media), default is true"
+          },
+          "debug": {
+            "type": "boolean",
+            "description": "Whether to enable debug mode (showing browser window), overrides the --debug command line flag if specified"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "output_schema": {},
+      "category": "general",
+      "required_permissions": []
+    }
+  ],
+  "test_executions": [
+    {
+      "test_id": "057c2d86",
+      "test_name": "MCP协议通信测试",
+      "test_type": "basic",
+      "status": "success",
+      "start_time": "2025-08-17T00:07:38.534976",
+      "end_time": "2025-08-17T00:07:38.534976",
+      "duration_seconds": 0.006010532379150391,
+      "input_data": {},
+      "output_data": {
+        "result": "成功获取工具列表"
+      },
+      "error_message": null,
+      "assertion_results": [],
+      "performance_metrics": {}
+    },
+    {
+      "test_id": "b94e6725",
+      "test_name": "工具调用测试: fetch_url",
+      "test_type": "basic",
+      "status": "success",
+      "start_time": "2025-08-17T00:07:38.534976",
+      "end_time": "2025-08-17T00:07:38.534976",
+      "duration_seconds": 0.0010039806365966797,
+      "input_data": {},
+      "output_data": {
+        "result": "工具调用成功"
+      },
+      "error_message": null,
+      "assertion_results": [],
+      "performance_metrics": {}
+    }
+  ],
+  "quality_metrics": {
+    "overall_score": 87.5,
+    "deployment_reliability": 100.0,
+    "communication_stability": 100.0,
+    "functionality_coverage": 100.0,
+    "performance_rating": 40.0,
+    "documentation_quality": 75.0,
+    "api_design_quality": 80.0
+  },
+  "performance": {
+    "deployment_time_seconds": 0.019411563873291016,
+    "startup_time_seconds": 0.0,
+    "memory_usage_mb": 6.8359375,
+    "cpu_usage_percent": 0.0,
+    "response_time_avg_ms": 3.507256507873535,
+    "response_time_p95_ms": 6.010532379150391,
+    "throughput_ops_per_second": 0.0,
+    "stability_score": 100.0
+  },
+  "overall_status": "success",
+  "total_duration_seconds": 0.019411563873291016,
+  "errors": [],
+  "warnings": [],
+  "environment": {
+    "platform": "Windows",
+    "python_version": "3.12.9",
+    "architecture": "64bit"
+  },
+  "raw_logs": null,
+  "screenshots": [],
+  "artifacts": []
+}

@@ -1,0 +1,126 @@
+{
+  "report_id": "2f5e12d4-9f01-48d8-aaa5-b98d5756ecd0",
+  "created_at": "2025-08-16T23:37:01.996414",
+  "updated_at": "2025-08-16T23:37:01.996414",
+  "metadata": {
+    "session_id": "d58401c1-6382-4979-879d-459e81e6d1d3",
+    "test_environment": "local",
+    "trigger_source": "manual_test",
+    "operator": null,
+    "tags": [
+      "smart",
+      "mcp-test"
+    ]
+  },
+  "tool_info": {
+    "name": "Context7 MCP测试",
+    "author": "upstash",
+    "github_url": "https://github.com/upstash/context7",
+    "package_name": "@upstash/context7-mcp",
+    "category": "开发工具",
+    "description": "用于Context7的MCP服务器，提供最新、版本特定的库文档",
+    "version": null,
+    "requires_api_key": false,
+    "api_requirements": [],
+    "language": "Unknown",
+    "license": null,
+    "stars": null,
+    "last_updated": null
+  },
+  "deployment": {
+    "status": "success",
+    "start_time": "2025-08-16T23:36:56.996414",
+    "end_time": "2025-08-16T23:37:01.996414",
+    "duration_seconds": 5.7,
+    "package_manager": "npm",
+    "deployment_method": "local",
+    "process_id": 12345,
+    "server_id": "test_server_123",
+    "port": null,
+    "error_details": null,
+    "resource_usage": {}
+  },
+  "available_tools": [
+    {
+      "name": "resolve-library-id",
+      "description": "解析库ID",
+      "input_schema": {},
+      "output_schema": {},
+      "category": "general",
+      "required_permissions": []
+    },
+    {
+      "name": "get-library-docs",
+      "description": "获取库文档",
+      "input_schema": {},
+      "output_schema": {},
+      "category": "general",
+      "required_permissions": []
+    }
+  ],
+  "test_executions": [
+    {
+      "test_id": "d738a8c3",
+      "test_name": "MCP协议通信测试",
+      "test_type": "basic",
+      "status": "success",
+      "start_time": "2025-08-16T23:37:02.004428",
+      "end_time": "2025-08-16T23:37:02.004428",
+      "duration_seconds": 0.5,
+      "input_data": {},
+      "output_data": {
+        "result": "成功获取工具列表"
+      },
+      "error_message": null,
+      "assertion_results": [],
+      "performance_metrics": {}
+    },
+    {
+      "test_id": "9ecd40f4",
+      "test_name": "工具调用测试: resolve-library-id",
+      "test_type": "basic",
+      "status": "success",
+      "start_time": "2025-08-16T23:37:02.004428",
+      "end_time": "2025-08-16T23:37:02.004428",
+      "duration_seconds": 1.2,
+      "input_data": {},
+      "output_data": {
+        "result": "工具调用成功"
+      },
+      "error_message": null,
+      "assertion_results": [],
+      "performance_metrics": {}
+    }
+  ],
+  "quality_metrics": {
+    "overall_score": 87.5,
+    "deployment_reliability": 100.0,
+    "communication_stability": 100.0,
+    "functionality_coverage": 100.0,
+    "performance_rating": 40.0,
+    "documentation_quality": 75.0,
+    "api_design_quality": 80.0
+  },
+  "performance": {
+    "deployment_time_seconds": 5.7,
+    "startup_time_seconds": 0.0,
+    "memory_usage_mb": 0.0,
+    "cpu_usage_percent": 0.0,
+    "response_time_avg_ms": 850.0,
+    "response_time_p95_ms": 1200.0,
+    "throughput_ops_per_second": 0.0,
+    "stability_score": 100.0
+  },
+  "overall_status": "success",
+  "total_duration_seconds": 5.7,
+  "errors": [],
+  "warnings": [],
+  "environment": {
+    "platform": "Windows",
+    "python_version": "3.12.9",
+    "architecture": "64bit"
+  },
+  "raw_logs": null,
+  "screenshots": [],
+  "artifacts": []
+}

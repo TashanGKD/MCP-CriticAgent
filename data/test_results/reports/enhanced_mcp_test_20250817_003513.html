@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强MCP测试报告 - Fetcher MCP</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            line-height: 1.6; 
+            background: #f5f7fa;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 40px; 
+            text-align: center;
+        }
+        .header h1 { margin: 0; font-size: 2.5em; font-weight: 300; }
+        .header p { margin: 15px 0 0 0; font-size: 1.1em; opacity: 0.9; }
+        .section { padding: 30px; border-bottom: 1px solid #eee; }
+        .section:last-child { border-bottom: none; }
+        .section h2 { color: #2d3748; margin-top: 0; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #667eea;
+        }
+        .stat-label { color: #6a737d; font-size: 0.9em; }
+        .success { color: #28a745; font-weight: bold; }
+        .failure { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .badge { 
+            background: #e3f2fd; 
+            color: #1976d2; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.8em; 
+        }
+        .tool-card { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid #007bff; 
+        }
+        .tool-card h4 { margin: 0 0 8px 0; color: #2d3748; }
+        .tool-card p { margin: 0 0 8px 0; color: #6a737d; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0;
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        th { 
+            background: #f8f9fa; 
+            font-weight: 600;
+            color: #495057;
+        }
+        tr:hover { background: #f8f9fa; }
+        .quality-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #ffc107 100%);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 增强MCP测试报告</h1>
+            <p><strong>Fetcher MCP</strong></p>
+            <p>2025-08-17 00:35:13 | 会话ID: d745d7d4-bad8-4ff6-9509-9da9e8ca45fd</p>
+        </div>
+        
+        <div class="section">
+            <h2>📊 测试概览</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">总体状态</div>
+                    <div class="stat-number failure">
+                        ❌
+                    </div>
+                    <div class="stat-label">failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">质量分数</div>
+                    <div class="stat-number">46.5</div>
+                    <div class="quality-bar">
+                        <div class="quality-fill" style="width: 46.5%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">测试通过率</div>
+                    <div class="stat-number">20.0%</div>
+                    <div class="stat-label">1/5 通过</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">可用工具</div>
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">个工具可用</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ 工具信息</h2>
+            
+            <p><strong>作者:</strong> jae-jae</p>
+            <p><strong>包名:</strong> fetcher-mcp</p>
+            <p><strong>类别:</strong> 实用工具</p>
+            <p><strong>GitHub:</strong> <a href="https://github.com/jae-jae/fetcher-mcp" target="_blank">https://github.com/jae-jae/fetcher-mcp</a></p>
+            <p><strong>描述:</strong> 用于通过 Playwright 无头浏览器获取网页内容的 MCP 服务器。支持智能内容提取和多样的输出格式。需要通过 'npx playwright install chromium' 安装 Playwright 浏览器。</p>
+            <p><strong>API密钥:</strong> 不需要</p>
+            
+        </div>
+        
+        <div class="section">
+            <h2>⚙️ 部署信息</h2>
+            
+            <p><strong>状态:</strong> <span class="success">success</span></p>
+            <p><strong>部署时间:</strong> 177.39 秒</p>
+            <p><strong>服务器ID:</strong> mcp_09578cb7</p>
+            <p><strong>进程ID:</strong> 39872</p>
+            
+        </div>
+        
+        <div class="section">
+            <h2>🔧 可用工具列表</h2>
+            
+            <div class="tool-card">
+                <h4>fetch_url</h4>
+                <p>Retrieve web page content from a specified URL</p>
+                <span class="badge">general</span>
+            </div>
+            
+            <div class="tool-card">
+                <h4>fetch_urls</h4>
+                <p>Retrieve web page content from multiple specified URLs</p>
+                <span class="badge">general</span>
+            </div>
+            
+        </div>
+        
+        <div class="section">
+            <h2>🧪 测试执行详情</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>测试名称</th>
+                        <th>状态</th>
+                        <th>类型</th>
+                        <th>耗时</th>
+                        <th>错误信息</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td>基础连通性测试</td>
+                <td><span class="success">✅ success</span></td>
+                <td>basic</td>
+                <td>7.782s</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td>单个URL获取测试</td>
+                <td><span class="failure">❌ failed</span></td>
+                <td>basic</td>
+                <td>53.291s</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td>多个URL获取测试</td>
+                <td><span class="failure">❌ failed</span></td>
+                <td>basic</td>
+                <td>60.010s</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td>错误处理测试 - 无效URL</td>
+                <td><span class="failure">❌ failed</span></td>
+                <td>basic</td>
+                <td>5.375s</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td>参数验证测试 - 超长内容限制</td>
+                <td><span class="failure">❌ failed</span></td>
+                <td>basic</td>
+                <td>4.347s</td>
+                <td>-</td>
+            </tr>
+            
+                </tbody>
+            </table>
+            
+        </div>
+        
+        <div class="section">
+            <h2>📈 性能指标</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">内存使用</div>
+                    <div class="stat-number">6.8</div>
+                    <div class="stat-label">MB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">平均响应时间</div>
+                    <div class="stat-number">26161.1</div>
+                    <div class="stat-label">毫秒</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">稳定性分数</div>
+                    <div class="stat-number">20.0</div>
+                    <div class="stat-label">分</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">总耗时</div>
+                    <div class="stat-number">177.39</div>
+                    <div class="stat-label">秒</div>
+                </div>
+            </div>
+        </div>
+        
+        
+    </div>
+</body>
+</html>
