@@ -30,7 +30,7 @@ jobs:
       
       # Supabase数据库配置
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     
     steps:
     - name: Checkout repository
@@ -74,7 +74,7 @@ jobs:
         fi
         
         # 检查数据库配置
-        if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
+        if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
           echo "✅ Supabase数据库配置已检测到，将启用数据库存储"
           DATABASE_ENABLED="true"
         else

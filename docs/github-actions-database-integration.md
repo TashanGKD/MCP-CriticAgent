@@ -9,7 +9,7 @@
 
 ### Supabase数据库配置
 - **`SUPABASE_URL`**: 您的Supabase项目URL（例如：`https://your-project.supabase.co`）
-- **`SUPABASE_KEY`**: 您的Supabase service_role密钥
+- **`SUPABASE_SERVICE_ROLE_KEY`**: 您的Supabase service_role密钥（**注意：必须是service_role密钥，不是anon密钥**）
 
 ### AI智能测试配置（可选）
 - **`OPENAI_API_KEY`**: OpenAI API密钥
