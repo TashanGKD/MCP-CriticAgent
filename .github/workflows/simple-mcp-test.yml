@@ -233,22 +233,6 @@ jobs:
             traceback.print_exc()
             sys.exit(1)
         EOF
-                else:
-                    print("⚠️ 未检测到新的数据库记录")
-                    sys.exit(1)
-                    
-            except Exception as e:
-                print(f"❌ 查询数据库失败: {e}")
-                import traceback
-                traceback.print_exc()
-                sys.exit(1)
-                
-        except Exception as e:
-            print(f"❌ 数据库连接失败: {e}")
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-        EOF
         
         uv run python verify_db_storage.py || {
           echo "database_verification_failed=true" >> $GITHUB_OUTPUT
