@@ -1,52 +1,101 @@
-# 🚀 Supabase快速开始（5分钟设置）
+# 🚀 5分钟快速开始指南
 
-## 📝 您现在需要做什么
+## 📝 您需要做什么
 
-您已经有了完整的代码和文档，现在只需要完成Supabase的设置：
+这是一个 **Python CLI 工具**，用于自动化测试 MCP (Model Context Protocol) 工具。只需5步即可开始测试！
 
-### 1️⃣ 创建Supabase项目（2分钟）
+## 1️⃣ 环境检查 (1分钟)
 
-```
-1. 访问：https://app.supabase.com
-2. 登录（使用GitHub/Google账号）
-3. 点击 "New project"
-4. 填写：
-   - 项目名：mcp-testing （推荐）
-   - 密码：设置一个强密码
-   - 区域：ap-northeast-1 （亚洲）
-5. 等待创建完成
+```bash
+# 检查环境要求
+python --version    # 需要 Python 3.12+
+node --version      # 需要 Node.js 18+
+npx --version       # 需要 npx (用于部署MCP工具)
 ```
 
-### 2️⃣ 获取API信息（1分钟）
+## 2️⃣ 安装项目 (2分钟)
 
-```
-1. 项目创建完成后
-2. 左侧菜单 → Settings → API
-3. 复制两个值：
-   - Project URL（项目地址）
-   - service_role key（服务密钥，点击眼睛图标显示）
-```
+```bash
+# 克隆项目
+git clone <repository-url>
+cd mcp_agent
 
-### 3️⃣ 更新.env文件（1分钟）
+# 安装依赖 (推荐使用 uv)
+uv sync
 
-```env
-# 在 .env 文件中添加：
-SUPABASE_URL=你复制的项目地址
-SUPABASE_SERVICE_ROLE_KEY=你复制的服务密钥
+# 或使用传统方式
+pip install -e .
 ```
 
-### 4️⃣ 初始化数据库（2分钟）
+## 3️⃣ 环境配置 (1分钟) - 可选
 
-**通过Supabase Dashboard执行SQL**
+如需 AI 智能测试功能，创建 `.env` 文件：
 
+```bash
+# OpenAI API (可选，用于AI智能测试)
+OPENAI_API_KEY=your_api_key_here
+
+# 或使用 DashScope (阿里云，推荐中文用户)
+DASHSCOPE_API_KEY=your_dashscope_key
 ```
-1. 访问您的Supabase项目Dashboard
-2. 左侧菜单 → SQL Editor
-3. 点击 "New query" 
-4. 复制 database/init_complete.sql 的全部内容
-5. 粘贴到编辑器并点击 "Run"
-6. 确认看到成功消息（包含表创建和RLS策略）
+
+## 4️⃣ 立即开始测试 (1分钟)
+
+```bash
+# 基础测试 - 测试经典的Context7工具
+uv run python -m src.main test-url "https://github.com/upstash/context7"
+
+# 启用AI智能测试 (需要API Key)
+uv run python -m src.main test-url "https://github.com/upstash/context7" --smart
+
+# 查看所有可用工具 (5000+工具数据库)
+uv run python -m src.main list-tools --limit 10
 ```
+
+## 5️⃣ 查看结果
+
+测试完成后：
+- **控制台输出**: 实时显示测试进度和结果
+- **报告文件**: 保存在 `data/test_results/` 目录
+- **JSON格式**: 机器可读的详细数据
+- **HTML格式**: 人类友好的可视化报告
+
+## 🎯 常用命令
+
+```bash
+# 直接测试npm包
+uv run python -m src.main test-package "@upstash/context7-mcp"
+
+# 搜索工具
+uv run python -m src.main list-tools --search "github"
+
+# 环境检查
+uv run python -m src.main init-env
+
+# 批量测试
+uv run python -m src.main batch-test --input data/test.csv
+```
+
+## ❓ 常见问题
+
+**Q: 测试失败怎么办？**  
+A: 检查 Node.js 是否安装，运行 `uv run python -m src.main init-env` 诊断
+
+**Q: 没有 API Key 可以使用吗？**  
+A: 可以！基础测试功能无需 API Key，AI 智能测试功能才需要
+
+**Q: 支持哪些 MCP 工具？**  
+A: 支持 5000+ 工具，使用 `list-tools` 命令查看
+
+## 🎉 完成！
+
+你现在可以：
+- 测试任何 GitHub 上的 MCP 工具
+- 使用 AI 自动生成测试用例  
+- 生成详细的测试报告
+- 批量测试多个工具
+
+**需要帮助？** 查看 [完整文档](README.md) 或 [工作流程](workflow.md)
 
 然后验证配置：
 ```bash

@@ -1,0 +1,57 @@
+{
+  "tool_name": "Context7 MCP - 最新代码文档适用于任何提示",
+  "test_url": "https://github.com/upstash/context7",
+  "test_time": "2025-08-21T17:43:05.246950",
+  "deployment_success": true,
+  "communication_success": false,
+  "available_tools_count": 2,
+  "test_duration_seconds": 133.92723846435547,
+  "tool_info": {
+    "name": "Context7 MCP - 最新代码文档适用于任何提示",
+    "url": "https://lobehub.com/mcp/upstash-context7",
+    "author": "upstash",
+    "github_url": "https://github.com/upstash/context7",
+    "description": "用于Context7的MCP服务器，提供最新、版本特定的库文档和代码示例，直接嵌入您的提示中。需要Node.js >= v18.0.0运行环境。",
+    "category": "开发工具\r\n推荐",
+    "package_name": "@upstash/context7-mcp",
+    "requires_api_key": false,
+    "install_command": "npx -y @smithery/cli@latest install @upstash/context7-mcp --client <CLIENT_NAME> --key <YOUR_SMITHERY_KEY>",
+    "run_command": "npx -y @upstash/context7-mcp",
+    "api_requirements": []
+  },
+  "test_results": [
+    {
+      "test_name": "基础连通性测试",
+      "success": false,
+      "duration": 2.771526575088501,
+      "error_message": null
+    },
+    {
+      "test_name": "核心功能测试 - Resolve Library ID",
+      "success": false,
+      "duration": 2.2649829387664795,
+      "error_message": null
+    },
+    {
+      "test_name": "核心功能测试 - 获取库文档",
+      "success": true,
+      "duration": 2.9591445922851562,
+      "error_message": null
+    },
+    {
+      "test_name": "错误处理测试 - 无效库名称",
+      "success": false,
+      "duration": 2.2380287647247314,
+      "error_message": null
+    },
+    {
+      "test_name": "参数验证测试 - 获取库文档时指定token限制",
+      "success": true,
+      "duration": 2.455352544784546,
+      "error_message": null
+    }
+  ],
+  "error_messages": [],
+  "platform_info": "Windows",
+  "process_pid": 40800
+}
