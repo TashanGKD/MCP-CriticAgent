@@ -229,21 +229,36 @@ class CLIHandler:
             with open(json_report_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
             
+            # 计算整体测试成功状态 - 基于实际JSON结构和成功率标准
+            deployment_ok = json_data.get('deployment_success', False)
+            communication_ok = json_data.get('communication_success', False)
+            test_results = json_data.get('test_results', [])
+            
+            # 计算测试成功率 - 50%或以上即认为成功
+            if test_results:
+                passed_tests = sum(1 for test in test_results if test.get('success', False))
+                success_rate = (passed_tests / len(test_results)) * 100
+                tests_successful = success_rate >= 50.0  # 50%或以上认为成功
+            else:
+                tests_successful = False
+                
+            overall_success = deployment_ok and communication_ok and tests_successful
+            
             # 转换为数据库记录格式 - 匹配实际数据库表结构
             record = {
                 'test_timestamp': datetime.now().isoformat(),
-                'tool_identifier': json_data.get('github_url', ''),
-                'tool_name': json_data.get('tool_info', {}).get('name', 'Unknown') if json_data.get('tool_info') else 'Unknown',
+                'tool_identifier': json_data.get('tool_info', {}).get('github_url', '') if json_data.get('tool_info') else json_data.get('test_url', ''),
+                'tool_name': json_data.get('tool_info', {}).get('name', 'Unknown') if json_data.get('tool_info') else json_data.get('tool_name', 'Unknown'),
                 'tool_author': json_data.get('tool_info', {}).get('author', '') if json_data.get('tool_info') else '',
                 'tool_category': json_data.get('tool_info', {}).get('category', '') if json_data.get('tool_info') else '',
-                'test_success': json_data.get('overall_success', False),
-                'deployment_success': json_data.get('deployment', {}).get('success', False),
-                'communication_success': json_data.get('connectivity_test', {}).get('success', False),
-                'available_tools_count': len(json_data.get('tools', [])),
-                'test_duration_seconds': json_data.get('duration_seconds', 0),
-                'error_messages': json_data.get('errors', []),
-                'test_details': json_data.get('test_details', {}),
-                'environment_info': json_data.get('environment', {})
+                'test_success': overall_success,
+                'deployment_success': json_data.get('deployment_success', False),
+                'communication_success': json_data.get('communication_success', False),
+                'available_tools_count': json_data.get('available_tools_count', 0),
+                'test_duration_seconds': json_data.get('test_duration_seconds', 0),
+                'error_messages': json_data.get('error_messages', []),
+                'test_details': json_data.get('test_results', []),
+                'environment_info': {'platform': json_data.get('platform_info', 'Unknown')}
             }
             
             # 插入数据库 - 使用与database_examples.py相同的方式

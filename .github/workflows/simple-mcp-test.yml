@@ -97,7 +97,7 @@ jobs:
         }
         
         # 检查报告生成
-        REPORT_DIR="data/test_results/reports"
+        REPORT_DIR="data/test_results"
         if [ -d "$REPORT_DIR" ]; then
           LATEST_JSON=$(ls -t "$REPORT_DIR"/*.json 2>/dev/null | head -1)
           LATEST_HTML=$(ls -t "$REPORT_DIR"/*.html 2>/dev/null | head -1)
