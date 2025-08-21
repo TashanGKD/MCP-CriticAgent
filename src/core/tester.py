@@ -29,6 +29,7 @@ class TestConfig:
     smart_test: bool = False
     cleanup: bool = True
     save_report: bool = True
+    db_export: bool = False
 
 
 class MCPTester:
@@ -102,11 +103,14 @@ class MCPTester:
         )
     
     def _test_first_tool(self, server_info, timeout: int) -> TestResult:
-        """测试第一个可用工具 - 单一职责"""
+        """测试第一个可用工具 - 智能参数生成"""
         first_tool = server_info.available_tools[0]
         tool_name = first_tool.get('name', 'unknown')
         
         start_time = time.time()
+        
+        # 生成基本测试参数
+        arguments = self._generate_test_arguments(first_tool)
         
         request = {
             "jsonrpc": "2.0",
@@ -114,7 +118,7 @@ class MCPTester:
             "method": "tools/call",
             "params": {
                 "name": tool_name,
-                "arguments": {}
+                "arguments": arguments
             }
         }
         
@@ -127,6 +131,57 @@ class MCPTester:
             duration=duration,
             error_message=result.get('error') if not result['success'] else None
         )
+    
+    def _generate_test_arguments(self, tool_info: dict) -> dict:
+        """为工具生成基本测试参数 - Linus式简单逻辑"""
+        tool_name = tool_info.get('name', '')
+        input_schema = tool_info.get('inputSchema', {})
+        properties = input_schema.get('properties', {})
+        required = input_schema.get('required', [])
+        
+        arguments = {}
+        
+        # 特殊工具的精确参数
+        if tool_name == 'resolve-library-id':
+            arguments = {"libraryName": "react"}
+        elif tool_name == 'get-library-docs':
+            arguments = {"context7CompatibleLibraryID": "/facebook/react"}
+        elif 'library' in tool_name.lower():
+            arguments = {"library": "react"}
+        elif 'query' in tool_name.lower():
+            arguments = {"query": "test"}
+        elif 'search' in tool_name.lower():
+            arguments = {"query": "example"}
+        elif 'file' in tool_name.lower():
+            arguments = {"path": "/tmp/test.txt"}
+        else:
+            # 根据schema和required字段生成参数
+            for prop_name in required:
+                prop_info = properties.get(prop_name, {})
+                prop_type = prop_info.get('type', 'string')
+                
+                if prop_type == 'string':
+                    # 基于属性名称的启发式
+                    if 'name' in prop_name.lower():
+                        arguments[prop_name] = "test"
+                    elif 'id' in prop_name.lower():
+                        arguments[prop_name] = "/test/example"
+                    elif 'query' in prop_name.lower():
+                        arguments[prop_name] = "example query"
+                    elif 'path' in prop_name.lower():
+                        arguments[prop_name] = "/tmp/test"
+                    else:
+                        arguments[prop_name] = "test_value"
+                elif prop_type == 'number' or prop_type == 'integer':
+                    arguments[prop_name] = 1000 if 'token' in prop_name.lower() else 1
+                elif prop_type == 'boolean':
+                    arguments[prop_name] = True
+                elif prop_type == 'array':
+                    arguments[prop_name] = []
+                elif prop_type == 'object':
+                    arguments[prop_name] = {}
+        
+        return arguments
     
     async def run_smart_test(self, tool_info: MCPToolInfo, server_info, verbose: bool) -> Tuple[bool, List[TestResult]]:
         """智能测试 - 简化版"""

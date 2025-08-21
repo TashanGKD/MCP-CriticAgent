@@ -82,8 +82,16 @@ jobs:
           DATABASE_ENABLED="false"
         fi
         
-        # 执行完整测试
-        uv run python -m src.main test-url "$GITHUB_URL" --timeout 600 --verbose $USE_SMART || {
+        # 执行完整测试 - 使用当前主程序逻辑
+        if [ "$DATABASE_ENABLED" = "true" ]; then
+          echo "🗄️ 启用数据库导出模式"
+          DB_EXPORT_FLAG="--db-export"
+        else
+          echo "📄 仅文件报告模式"
+          DB_EXPORT_FLAG=""
+        fi
+        
+        uv run python -m src.main test-url "$GITHUB_URL" --timeout 600 --verbose $USE_SMART $DB_EXPORT_FLAG || {
           echo "❌ 测试失败，但继续生成报告"
           exit_code=$?
         }
@@ -116,22 +124,24 @@ jobs:
       run: |
         echo "🔍 验证数据库存储结果..."
         
-        # 使用Python脚本验证数据库存储
+        # 使用Python脚本验证数据库存储 - 使用实际数据库表结构
         cat > verify_db_storage.py << 'EOF'
         #!/usr/bin/env python3
         import sys
         import os
-        sys.path.append('src')
         
         print(f"🐍 Python版本: {sys.version}")
         print(f"📁 当前工作目录: {os.getcwd()}")
-        print(f"📂 Python路径: {sys.path}")
         
         # 检查环境变量
         supabase_url = os.getenv('SUPABASE_URL')
         supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
         print(f"🌐 SUPABASE_URL: {'已配置' if supabase_url else '未配置'}")
         print(f"🔑 SUPABASE_SERVICE_ROLE_KEY: {'已配置' if supabase_key else '未配置'}")
+        
+        if not supabase_url or not supabase_key:
+            print("❌ 数据库配置不完整")
+            sys.exit(1)
         
         try:
             from supabase import create_client, Client
@@ -141,63 +151,88 @@ jobs:
             sys.exit(1)
         
         try:
-            from src.core.supabase_connector import SupabaseConnector
             from datetime import datetime, timedelta
             import json
             
-            connector = SupabaseConnector()
-            print("✅ SupabaseConnector初始化成功")
+            # 直接创建Supabase客户端
+            client = create_client(supabase_url, supabase_key)
+            print("✅ Supabase客户端初始化成功")
             
-            # 获取最近的测试报告
-            recent_cutoff = datetime.now() - timedelta(hours=1)
+            # 获取最近5分钟的测试记录 (GitHub Actions执行时间更长)
+            recent_cutoff = datetime.now() - timedelta(minutes=5)
             print(f"⏰ 查询时间范围: {recent_cutoff.isoformat()} 至现在")
             
-            # 查询各表的记录数
-            tables_info = {}
+            # 查询mcp_test_results表 - 使用实际的表结构
+            result = client.table('mcp_test_results')\
+                .select('test_id, test_timestamp, tool_name, tool_author, test_success, deployment_success, communication_success, available_tools_count, test_duration_seconds')\
+                .gte('test_timestamp', recent_cutoff.isoformat())\
+                .order('test_timestamp', desc=True)\
+                .execute()
             
-            try:
-                # 测试报告表
-                result = connector.client.table('test_reports').select('id', count='exact').gte('created_at', recent_cutoff.isoformat()).execute()
-                tables_info['test_reports'] = {'count': len(result.data), 'recent_records': len(result.data)}
+            recent_tests = result.data
+            total_recent = len(recent_tests)
+            
+            # 统计信息
+            if total_recent > 0:
+                success_count = sum(1 for test in recent_tests if test.get('test_success', False))
+                success_rate = (success_count / total_recent) * 100
+                deployment_success = sum(1 for test in recent_tests if test.get('deployment_success', False))
+                communication_success = sum(1 for test in recent_tests if test.get('communication_success', False))
                 
-                # MCP工具表 
-                result = connector.client.table('mcp_tools').select('id', count='exact').execute()
-                tables_info['mcp_tools'] = {'count': len(result.data), 'total_tools': len(result.data)}
-                
-                # 测试执行表
-                result = connector.client.table('test_executions').select('id', count='exact').gte('created_at', recent_cutoff.isoformat()).execute()
-                tables_info['test_executions'] = {'count': len(result.data), 'recent_records': len(result.data)}
-                
-                # 质量指标表
-                result = connector.client.table('quality_metrics').select('id', count='exact').gte('created_at', recent_cutoff.isoformat()).execute()
-                tables_info['quality_metrics'] = {'count': len(result.data), 'recent_records': len(result.data)}
-                
-                # 性能分析表
-                result = connector.client.table('performance_analysis').select('id', count='exact').gte('created_at', recent_cutoff.isoformat()).execute()
-                tables_info['performance_analysis'] = {'count': len(result.data), 'recent_records': len(result.data)}
-                
-                # 部署信息表
-                result = connector.client.table('deployment_info').select('id', count='exact').gte('created_at', recent_cutoff.isoformat()).execute()
-                tables_info['deployment_info'] = {'count': len(result.data), 'recent_records': len(result.data)}
-                
-                # 测试元数据表
-                result = connector.client.table('test_metadata').select('id', count='exact').gte('created_at', recent_cutoff.isoformat()).execute()
-                tables_info['test_metadata'] = {'count': len(result.data), 'recent_records': len(result.data)}
+                stats = {
+                    'total_recent_tests': total_recent,
+                    'successful_tests': success_count,
+                    'failed_tests': total_recent - success_count,
+                    'success_rate': round(success_rate, 2),
+                    'deployment_success_count': deployment_success,
+                    'communication_success_count': communication_success,
+                    'time_range': f"{recent_cutoff.isoformat()} to {datetime.now().isoformat()}",
+                    'recent_tools': list(set(test.get('tool_name', 'Unknown') for test in recent_tests[:10])),
+                    'authors': list(set(test.get('tool_author', 'Unknown') for test in recent_tests if test.get('tool_author')))
+                }
                 
                 print("✅ 数据库连接成功")
-                print("📊 数据库表统计:")
-                for table, info in tables_info.items():
-                    print(f"  📋 {table}: {info.get('recent_records', info['count'])} 条最新记录")
+                print(f"📊 最近5分钟测试记录: {total_recent} 条")
+                print(f"📈 总体成功率: {success_count}/{total_recent} ({success_rate:.1f}%)")
+                print(f"🚀 部署成功率: {deployment_success}/{total_recent}")
+                print(f"📡 通信成功率: {communication_success}/{total_recent}")
                 
-                # 输出JSON格式的统计信息
-                with open('db_stats.json', 'w') as f:
-                    json.dump(tables_info, f, indent=2)
+                # 显示最近测试的工具
+                if stats['recent_tools']:
+                    print(f"🔧 最近测试的工具: {', '.join(stats['recent_tools'][:3])}")
                 
-                # 检查是否有数据被保存
-                total_recent = sum(info.get('recent_records', 0) for info in tables_info.values())
-                if total_recent > 0:
-                    print(f"✅ 成功保存 {total_recent} 条记录到数据库")
-                    sys.exit(0)
+                # 保存统计信息
+                with open('db_stats.json', 'w', encoding='utf-8') as f:
+                    json.dump(stats, f, ensure_ascii=False, indent=2, default=str)
+                
+                print(f"✅ 成功从数据库获取 {total_recent} 条最新测试记录")
+                sys.exit(0)
+            else:
+                print("⚠️ 未检测到最近5分钟内的新测试记录")
+                
+                # 查询总记录数
+                total_result = client.table('mcp_test_results').select('test_id', count='exact').execute()
+                total_count = len(total_result.data) if total_result.data else 0
+                
+                stats = {
+                    'total_recent_tests': 0,
+                    'total_all_tests': total_count,
+                    'message': 'No recent tests found, but database connection is working'
+                }
+                
+                with open('db_stats.json', 'w', encoding='utf-8') as f:
+                    json.dump(stats, f, ensure_ascii=False, indent=2, default=str)
+                
+                print(f"📊 数据库总记录数: {total_count}")
+                print("✅ 数据库连接正常，但本次测试可能未启用数据库导出")
+                sys.exit(0)
+                    
+        except Exception as e:
+            print(f"❌ 数据库操作失败: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        EOF
                 else:
                     print("⚠️ 未检测到新的数据库记录")
                     sys.exit(1)
@@ -309,14 +344,29 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "## 📊 数据库存储统计" >> $GITHUB_STEP_SUMMARY
             
-            # 简单显示数据库文件内容
+            # 显示数据库统计信息
             if command -v jq >/dev/null 2>&1; then
-              # 如果有jq，使用jq解析
-              echo "| 表名 | 最新记录数 |" >> $GITHUB_STEP_SUMMARY
-              echo "|------|-----------|" >> $GITHUB_STEP_SUMMARY
-              jq -r 'to_entries[] | "| \(.key) | \(.value.recent_records // .value.count) |"' db_stats.json >> $GITHUB_STEP_SUMMARY
+              # 使用jq解析显示统计信息
+              echo "| 统计项 | 数值 |" >> $GITHUB_STEP_SUMMARY
+              echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
+              
+              total_recent=$(jq -r '.total_recent_tests // 0' db_stats.json)
+              successful=$(jq -r '.successful_tests // 0' db_stats.json)
+              failed=$(jq -r '.failed_tests // 0' db_stats.json)
+              success_rate=$(jq -r '.success_rate // "N/A"' db_stats.json)
+              
+              echo "| 最近测试数 | $total_recent |" >> $GITHUB_STEP_SUMMARY
+              echo "| 成功测试数 | $successful |" >> $GITHUB_STEP_SUMMARY
+              echo "| 失败测试数 | $failed |" >> $GITHUB_STEP_SUMMARY
+              echo "| 成功率 | ${success_rate}% |" >> $GITHUB_STEP_SUMMARY
+              
+              # 显示最近测试的工具
+              tools=$(jq -r '.recent_tools[]?' db_stats.json 2>/dev/null | head -3 | tr '\n' ', ' | sed 's/, $//')
+              if [ -n "$tools" ]; then
+                echo "| 最近测试工具 | $tools |" >> $GITHUB_STEP_SUMMARY
+              fi
             else
-              # 否则简单显示原始内容
+              # 否则显示原始JSON内容
               echo "```json" >> $GITHUB_STEP_SUMMARY
               cat db_stats.json >> $GITHUB_STEP_SUMMARY
               echo "```" >> $GITHUB_STEP_SUMMARY

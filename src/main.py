@@ -21,6 +21,16 @@ from rich import print as rprint
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# 加载环境变量 - 确保数据库配置可用
+try:
+    from dotenv import load_dotenv
+    env_file = project_root / '.env'
+    if env_file.exists():
+        load_dotenv(env_file)
+        # rprint(f"[dim]✅ 已加载环境变量: {env_file}[/dim]")
+except ImportError:
+    pass  # python-dotenv 不是必须依赖
+
 from src.core.cli_handlers import get_cli_handler
 from src.core.tester import TestConfig
 
@@ -40,12 +50,13 @@ def test_single_url(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出模式"),
     save_report: bool = typer.Option(True, "--save-report/--no-save-report", help="保存测试报告"),
     cleanup: bool = typer.Option(True, "--cleanup/--no-cleanup", help="自动清理"),
-    smart: bool = typer.Option(False, "--smart/--no-smart", help="启用AI智能测试")
+    smart: bool = typer.Option(False, "--smart/--no-smart", help="启用AI智能测试"),
+    db_export: bool = typer.Option(False, "--db-export", help="导出结果到数据库")
 ):
     """测试单个 MCP 工具 URL"""
     rprint(f"[bold green]🎯 开始测试 MCP 工具:[/bold green] {url}")
     
-    config = TestConfig(timeout, verbose, smart, cleanup, save_report)
+    config = TestConfig(timeout, verbose, smart, cleanup, save_report, db_export)
     success = handler.test_url(url, config)
     
     if success:
@@ -58,13 +69,15 @@ def test_package(
     package: str = typer.Argument(..., help="要测试的 MCP 包名"),
     timeout: int = typer.Option(600, "--timeout", "-t", help="测试超时时间（秒）"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出模式"),
-    cleanup: bool = typer.Option(True, "--cleanup", help="自动清理"),
-    smart: bool = typer.Option(False, "--smart", help="启用AI智能测试")
+    save_report: bool = typer.Option(True, "--save-report/--no-save-report", help="保存测试报告"),
+    cleanup: bool = typer.Option(True, "--cleanup/--no-cleanup", help="自动清理"),
+    smart: bool = typer.Option(False, "--smart/--no-smart", help="启用AI智能测试"),
+    db_export: bool = typer.Option(False, "--db-export", help="导出结果到数据库")
 ):
     """直接测试指定的 MCP 包"""
     rprint(f"[bold green]📦 开始测试 MCP 包:[/bold green] {package}")
     
-    config = TestConfig(timeout, verbose, smart, cleanup, False)
+    config = TestConfig(timeout, verbose, smart, cleanup, save_report, db_export)
     success = handler.test_package(package, config)
     
     if success:

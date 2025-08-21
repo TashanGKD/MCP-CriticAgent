@@ -79,8 +79,11 @@ class MCPReportGenerator:
                      error_messages: List[str] = None) -> MCPTestReport:
         """创建报告对象 - 单一职责"""
         
+        # 处理tool_info为None的情况（用于package测试）
+        tool_name = tool_info.name if tool_info else url
+        
         return MCPTestReport(
-            tool_name=tool_info.name,
+            tool_name=tool_name,
             test_url=url,
             test_time=datetime.now(),
             deployment_success=server_info is not None,

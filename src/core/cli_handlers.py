@@ -46,8 +46,13 @@ class CLIHandler:
             success, test_results = self._run_tests(tool_info, server_info, config)
             
             # 4. 生成报告
+            report_files = {}
             if config.save_report:
-                self._save_report(url, tool_info, server_info, success, test_results, server_info.start_time)
+                report_files = self._save_report(url, tool_info, server_info, success, test_results, server_info.start_time)
+            
+            # 4.5. 数据库导出 (可选)
+            if config.db_export:
+                self._export_to_database(report_files.get('json'), report_files)
             
             # 5. 清理资源
             if config.cleanup:
@@ -74,8 +79,13 @@ class CLIHandler:
             success, test_results = self._run_tests(None, server_info, config)
             
             # 生成报告（如果需要）
+            report_files = {}
             if config.save_report:
-                self._save_report(package, None, server_info, success, test_results, server_info.start_time)
+                report_files = self._save_report(package, None, server_info, success, test_results, server_info.start_time)
+            
+            # 数据库导出 (如果需要)
+            if config.db_export:
+                self._export_to_database(report_files.get('json'), report_files)
             
             # 清理
             if config.cleanup:
@@ -181,9 +191,75 @@ class CLIHandler:
             
             for format_name, file_path in report_files.items():
                 rprint(f"[green]✅ {format_name.upper()} 报告已保存: {file_path}[/green]")
+            
+            return report_files
                 
         except Exception as e:
             rprint(f"[red]❌ 报告生成失败: {e}[/red]")
+            return {}
+    
+    def _export_to_database(self, json_report_path: str, result: dict = None):
+        """导出到数据库 - MVP版本"""
+        if not json_report_path:
+            rprint("[yellow]⚠️ 没有JSON报告，跳过数据库导出[/yellow]")
+            return
+        
+        try:
+            rprint("[blue]🗄️ 导出结果到数据库...[/blue]")
+            
+            # 使用与database_examples.py相同的方式
+            import os
+            from supabase import create_client
+            import json
+            from datetime import datetime
+            
+            # 获取数据库配置 - 使用环境变量
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+            
+            if not supabase_url or not supabase_key:
+                rprint("[yellow]⚠️ 数据库配置未设置 (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)，跳过数据库导出[/yellow]")
+                return
+            
+            # 创建Supabase客户端 - 与database_examples.py相同的方式
+            client = create_client(supabase_url, supabase_key)
+            rprint("[green]✅ Supabase客户端连接成功[/green]")
+            
+            # 读取JSON报告
+            with open(json_report_path, 'r', encoding='utf-8') as f:
+                json_data = json.load(f)
+            
+            # 转换为数据库记录格式 - 匹配实际数据库表结构
+            record = {
+                'test_timestamp': datetime.now().isoformat(),
+                'tool_identifier': json_data.get('github_url', ''),
+                'tool_name': json_data.get('tool_info', {}).get('name', 'Unknown') if json_data.get('tool_info') else 'Unknown',
+                'tool_author': json_data.get('tool_info', {}).get('author', '') if json_data.get('tool_info') else '',
+                'tool_category': json_data.get('tool_info', {}).get('category', '') if json_data.get('tool_info') else '',
+                'test_success': json_data.get('overall_success', False),
+                'deployment_success': json_data.get('deployment', {}).get('success', False),
+                'communication_success': json_data.get('connectivity_test', {}).get('success', False),
+                'available_tools_count': len(json_data.get('tools', [])),
+                'test_duration_seconds': json_data.get('duration_seconds', 0),
+                'error_messages': json_data.get('errors', []),
+                'test_details': json_data.get('test_details', {}),
+                'environment_info': json_data.get('environment', {})
+            }
+            
+            # 插入数据库 - 使用与database_examples.py相同的方式
+            response = client.table('mcp_test_results').insert(record).execute()
+            
+            if response.data:
+                rprint("[green]✅ 数据库导出成功 - 记录已保存到 mcp_test_results 表[/green]")
+                rprint(f"[dim]   工具: {record['tool_name']}[/dim]")
+                rprint(f"[dim]   成功: {'✅' if record['test_success'] else '❌'}[/dim]")
+                rprint(f"[dim]   耗时: {record['test_duration_seconds']:.1f}秒[/dim]")
+            else:
+                rprint("[yellow]⚠️ 数据库导出可能失败，但不影响测试结果[/yellow]")
+                
+        except Exception as e:
+            rprint(f"[yellow]⚠️ 数据库导出异常: {e}[/yellow]")
+            rprint("[dim]   检查 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY 环境变量[/dim]")
     
     def _cleanup_server(self, server_id: str):
         """清理服务器 - 单一职责"""
