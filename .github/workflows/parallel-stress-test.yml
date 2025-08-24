@@ -113,7 +113,7 @@ jobs:
     - name: Install dependencies
       run: uv sync
       
-      - name: Complete MCP Tool Testing
+    - name: Complete MCP Tool Testing
       id: test
       run: |
         PACKAGE="${{ matrix.target.package }}"

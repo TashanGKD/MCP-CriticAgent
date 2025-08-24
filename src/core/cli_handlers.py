@@ -21,7 +21,7 @@ from rich import print as rprint
 from src.core.tester import get_mcp_tester, TestConfig
 from src.core.report_generator import generate_test_report
 from src.utils.csv_parser import MCPToolInfo, get_mcp_parser
-from src.core.evaluator import evaluate_full_repository_profile
+from src.core.evaluator import evaluate_full_repository_with_comprehensive_score
 
 class CLIHandler:
     """CLI命令处理器 - 统一处理模式"""
@@ -30,7 +30,7 @@ class CLIHandler:
         self.tester = get_mcp_tester()
 
     def evaluate_tools(self, db_export: bool):
-        """评估所有工具 - 主要流程"""
+        """评估所有工具 - 包含综合评分"""
         try:
             parser = get_mcp_parser()
             tools = parser.get_all_tools()
@@ -38,15 +38,30 @@ class CLIHandler:
                 rprint("[red]❌ 没有找到可评估的工具。[/red]")
                 return
 
+            # 创建Supabase客户端供评估使用
+            supabase_client = None
+            if db_export:
+                try:
+                    import os
+                    from supabase import create_client
+                    supabase_url = os.getenv('SUPABASE_URL')
+                    supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+                    if supabase_url and supabase_key:
+                        supabase_client = create_client(supabase_url, supabase_key)
+                except:
+                    pass
+
             for tool in tools:
                 if not tool.github_url:
                     continue
 
                 rprint(f"[blue]🔍 正在评估: {tool.name}[/blue]")
-                evaluation_result = evaluate_full_repository_profile(tool.github_url)
+                evaluation_result = evaluate_full_repository_with_comprehensive_score(tool.github_url, supabase_client)
 
                 if evaluation_result["status"] == "success":
-                    rprint(f"[green]✅ 评估完成: {tool.name} - 分数: {evaluation_result['final_score']}[/green]")
+                    final_score = evaluation_result['final_score']
+                    comprehensive_score = evaluation_result.get('final_comprehensive_score', final_score)
+                    rprint(f"[green]✅ 评估完成: {tool.name} - GitHub评分: {final_score}/100, 综合评分: {comprehensive_score}/100[/green]")
                     if db_export:
                         self._export_evaluation_to_database(tool.github_url, evaluation_result)
                 else:
@@ -56,7 +71,7 @@ class CLIHandler:
             rprint(f"[red]❌ 评估过程发生错误: {e}[/red]")
 
     def _export_evaluation_to_database(self, github_url: str, evaluation_result: dict):
-        """导出评估结果到数据库"""
+        """导出评估结果到数据库 - 包含综合评分"""
         try:
             import os
             from supabase import create_client
@@ -71,6 +86,10 @@ class CLIHandler:
 
             client = create_client(supabase_url, supabase_key)
 
+            # 获取综合评分数据
+            test_success_info = evaluation_result.get('test_success_rate', {})
+            comprehensive_info = evaluation_result.get('comprehensive_scoring', {})
+
             record = {
                 'github_url': github_url,
                 'final_score': evaluation_result['final_score'],
@@ -79,6 +98,11 @@ class CLIHandler:
                 'sustainability_details': evaluation_result['sustainability']['details'],
                 'popularity_details': evaluation_result['popularity']['details'],
                 'last_evaluated_at': datetime.now().isoformat(),
+                # 新增字段
+                'success_rate': test_success_info.get('success_rate'),
+                'test_count': test_success_info.get('test_count', 0),
+                'total_score': comprehensive_info.get('total_score'),
+                'last_calculated_at': datetime.now().isoformat(),
             }
 
             client.table('mcp_repository_evaluations').upsert(record).execute()
@@ -107,7 +131,20 @@ class CLIHandler:
             evaluation_result = None
             if config.evaluate:
                 rprint("[blue]🔍 正在评估工具...[/blue]")
-                evaluation_result = evaluate_full_repository_profile(tool_info.github_url)
+                # 创建Supabase客户端供评估使用
+                supabase_client = None
+                if config.db_export:
+                    try:
+                        import os
+                        from supabase import create_client
+                        supabase_url = os.getenv('SUPABASE_URL')
+                        supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+                        if supabase_url and supabase_key:
+                            supabase_client = create_client(supabase_url, supabase_key)
+                    except:
+                        pass
+                
+                evaluation_result = evaluate_full_repository_with_comprehensive_score(tool_info.github_url, supabase_client)
                 if evaluation_result and evaluation_result.get("status") == "success":
                     self._display_evaluation_result(evaluation_result)
 
@@ -152,7 +189,20 @@ class CLIHandler:
             evaluation_result = None
             if config.evaluate and tool_info and tool_info.github_url:
                 rprint("[blue]🔍 正在评估工具...[/blue]")
-                evaluation_result = evaluate_full_repository_profile(tool_info.github_url)
+                # 创建Supabase客户端供评估使用
+                supabase_client = None
+                if config.db_export:
+                    try:
+                        import os
+                        from supabase import create_client
+                        supabase_url = os.getenv('SUPABASE_URL')
+                        supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+                        if supabase_url and supabase_key:
+                            supabase_client = create_client(supabase_url, supabase_key)
+                    except:
+                        pass
+                
+                evaluation_result = evaluate_full_repository_with_comprehensive_score(tool_info.github_url, supabase_client)
                 if evaluation_result and evaluation_result.get("status") == "success":
                     self._display_evaluation_result(evaluation_result)
 
@@ -352,6 +402,49 @@ class CLIHandler:
                 record['sustainability_details'] = evaluation_result['sustainability']['details']
                 record['popularity_details'] = evaluation_result['popularity']['details']
                 record['evaluation_timestamp'] = datetime.now().isoformat()
+                
+                # 计算并添加综合评分 - 形成闭环 (兼容模式)
+                try:
+                    from src.core.evaluator import calculate_comprehensive_score_from_tests
+                    github_url = tool_info.get('github_url', '') if tool_info else json_data.get('test_url', '')
+                    
+                    if github_url:
+                        # 先插入基础记录
+                        response = client.table('mcp_test_results').insert(record).execute()
+                        
+                        if response.data:
+                            record_id = response.data[0]['test_id']
+                            rprint("[green]✅ 基础记录已保存到数据库[/green]")
+                            
+                            # 计算综合评分
+                            comp_result = calculate_comprehensive_score_from_tests(github_url, client)
+                            if comp_result and comp_result.get('comprehensive_score') is not None:
+                                try:
+                                    # 尝试更新记录，如果列不存在会失败但不影响主流程
+                                    update_data = {
+                                        'comprehensive_score': comp_result['comprehensive_score'],
+                                        'calculation_method': comp_result['calculation_method']
+                                    }
+                                    
+                                    client.table('mcp_test_results')\
+                                        .update(update_data)\
+                                        .eq('test_id', record_id)\
+                                        .execute()
+                                    
+                                    rprint(f"[green]✅ 综合评分已更新: {comp_result['comprehensive_score']} ({comp_result['calculation_method']})[/green]")
+                                    
+                                except Exception as update_error:
+                                    # 列不存在，但不影响核心功能
+                                    rprint(f"[yellow]⚠️ 综合评分列不存在，请先运行数据库迁移: {update_error}[/yellow]")
+                                    rprint(f"[dim]💡 综合评分计算完成: {comp_result['comprehensive_score']}, 但无法存储到数据库[/dim]")
+                            else:
+                                rprint("[dim]⚠️ 无法计算综合评分[/dim]")
+                            
+                            return  # 成功，提前返回
+                        
+                except Exception as e:
+                    rprint(f"[yellow]⚠️ 综合评分处理失败: {e}[/yellow]")
+                    # 继续执行普通插入逻辑
 
             rprint(f"[dim]Dumping to database: {record}[/dim]")
             response = client.table('mcp_test_results').insert(record).execute()
@@ -383,7 +476,7 @@ class CLIHandler:
         rprint(f"[blue]📝 描述: {tool_info.description[:100]}...[/blue]")
 
     def _display_evaluation_result(self, evaluation_result: dict):
-        """显示评估结果 - 统一格式"""
+        """显示评估结果 - 包含综合评分"""
         from rich.table import Table
         from rich.console import Console
 
@@ -397,8 +490,24 @@ class CLIHandler:
 
         sustainability = evaluation_result.get('sustainability', {})
         popularity = evaluation_result.get('popularity', {})
+        test_success_info = evaluation_result.get('test_success_rate', {})
+        comprehensive_info = evaluation_result.get('comprehensive_scoring', {})
 
-        table.add_row("总分", "", f"[bold]{evaluation_result.get('final_score')}[/bold]", "")
+        # 显示综合评分
+        final_comprehensive_score = evaluation_result.get('final_comprehensive_score', evaluation_result.get('final_score'))
+        table.add_row("[bold red]综合评分[/bold red]", "", f"[bold red]{final_comprehensive_score}[/bold red]", "GitHub评估 + 测试成功率综合")
+        
+        # 显示GitHub评估分数
+        table.add_row("GitHub评分", "", f"[bold]{evaluation_result.get('final_score')}[/bold]", "仓库可持续性和受欢迎程度")
+        
+        # 显示测试成功率
+        if test_success_info.get('success_rate') is not None:
+            success_rate = test_success_info['success_rate']
+            test_count = test_success_info.get('test_count', 0)
+            table.add_row("测试成功率", "", f"[bold]{success_rate}%[/bold]", f"基于 {test_count} 次测试记录")
+        else:
+            table.add_row("测试成功率", "", "[dim]暂无数据[/dim]", "无测试记录")
+
         table.add_section()
         table.add_row("[bold]可持续性[/bold]", "", f"[bold]{sustainability.get('total_score')}[/bold]", "")
         for metric, data in sustainability.get('details', {}).items():

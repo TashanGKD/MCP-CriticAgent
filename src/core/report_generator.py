@@ -107,10 +107,29 @@ class MCPReportGenerator:
         report_dict = asdict(report)
         report_dict['test_time'] = report.test_time.isoformat()
         
+        # 处理JSON序列化问题 - 转换NumPy类型
+        report_dict = self._convert_numpy_types(report_dict)
+        
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(report_dict, f, ensure_ascii=False, indent=2)
         
         return json_path
+    
+    def _convert_numpy_types(self, obj):
+        """递归转换NumPy类型和其他类型为Python原生类型"""
+        if isinstance(obj, dict):
+            return {key: self._convert_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_numpy_types(item) for item in obj]
+        elif hasattr(obj, 'item'):  # NumPy scalar
+            return obj.item()
+        elif str(type(obj)).startswith("<class 'numpy."):  # NumPy types
+            try:
+                return obj.item() if hasattr(obj, 'item') else obj.tolist()
+            except:
+                return str(obj)
+        else:
+            return obj
     
     def save_html(self, report: MCPTestReport) -> Path:
         """保存HTML报告 - 最简模板"""
