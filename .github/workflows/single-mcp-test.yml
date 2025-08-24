@@ -1,0 +1,237 @@
+name: 🧪 Single MCP Tool Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_url:
+        description: '🎯 GitHub URL of the MCP tool to test'
+        required: true
+        default: 'https://github.com/upstash/context7'
+
+jobs:
+  test-mcp-tool:
+    runs-on: ubuntu-latest
+    
+    env:
+      # AI模型配置
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      DASHSCOPE_BASE_URL: ${{ secrets.DASHSCOPE_BASE_URL }}
+      DASHSCOPE_MODEL: ${{ secrets.DASHSCOPE_MODEL }}
+      
+      # Supabase数据库配置
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+    - name: Install dependencies
+      run: uv sync
+        
+    - name: 🧪 Complete MCP Tool Testing
+      id: test_mcp
+      run: |
+        GITHUB_URL="${{ github.event.inputs.github_url }}"
+        
+        echo "🎯 开始完整 MCP 工具测试"
+        echo "📍 测试URL: $GITHUB_URL"
+        echo "⏱️ 超时时间: 600秒"
+        
+        # 检查AI配置
+        if [ -n "$OPENAI_API_KEY" ] || [ -n "$DASHSCOPE_API_KEY" ]; then
+          echo "✅ AI配置已检测到，将使用智能测试模式"
+          USE_SMART=""
+        else
+          echo "⚠️ 未检测到AI配置，将禁用智能测试"
+          USE_SMART="--no-smart"
+        fi
+        
+        # 检查数据库配置
+        if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+          echo "✅ Supabase数据库配置已检测到，将启用数据库存储"
+          DATABASE_ENABLED="true"
+          USE_DB=""
+        else
+          echo "⚠️ 未检测到Supabase配置，将禁用数据库导出"
+          DATABASE_ENABLED="false"
+          USE_DB="--no-db-export"
+        fi
+        
+        # 执行完整测试
+        if uv run python -m src.main test-url "$GITHUB_URL" --timeout 600 --verbose $USE_SMART $USE_DB; then
+          echo "✅ 测试成功完成"
+          TEST_STATUS="success"
+        else
+          echo "❌ 测试失败，但继续生成报告"
+          TEST_STATUS="failed"
+        fi
+        
+        # 检查报告生成
+        REPORT_DIR="data/test_results"
+        if [ -d "$REPORT_DIR" ]; then
+          LATEST_JSON=$(ls -t "$REPORT_DIR"/*.json 2>/dev/null | head -1)
+          LATEST_HTML=$(ls -t "$REPORT_DIR"/*.html 2>/dev/null | head -1)
+          
+          if [ -n "$LATEST_JSON" ]; then
+            echo "json_report=$LATEST_JSON" >> $GITHUB_OUTPUT
+            echo "✅ JSON报告: $LATEST_JSON"
+          fi
+          
+          if [ -n "$LATEST_HTML" ]; then
+            echo "html_report=$LATEST_HTML" >> $GITHUB_OUTPUT
+            echo "✅ HTML报告: $LATEST_HTML"
+          fi
+        fi
+        
+        # 输出状态
+        echo "test_status=$TEST_STATUS" >> $GITHUB_OUTPUT
+        echo "database_enabled=$DATABASE_ENABLED" >> $GITHUB_OUTPUT
+      
+    - name: 📊 Database Storage Verification
+      if: always() && steps.test_mcp.outputs.database_enabled == 'true'
+      id: verify_database
+      run: |
+        echo "🔍 验证数据库存储结果..."
+        
+        # 使用Python脚本验证数据库存储
+        cat > verify_db_storage.py << 'EOF'
+        #!/usr/bin/env python3
+        import sys
+        import os
+        
+        # 检查环境变量
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ 数据库配置不完整")
+            sys.exit(1)
+        
+        try:
+            from supabase import create_client
+            from datetime import datetime, timedelta
+            import json
+            
+            # 创建Supabase客户端
+            client = create_client(supabase_url, supabase_key)
+            print("✅ Supabase客户端初始化成功")
+            
+            # 获取最近5分钟的测试记录
+            recent_cutoff = datetime.now() - timedelta(minutes=5)
+            
+            # 查询mcp_test_results表
+            result = client.table('mcp_test_results')\
+                .select('test_id, test_timestamp, tool_name, tool_author, test_success, deployment_success, communication_success')\
+                .gte('test_timestamp', recent_cutoff.isoformat())\
+                .order('test_timestamp', desc=True)\
+                .execute()
+            
+            recent_tests = result.data
+            total_recent = len(recent_tests)
+            
+            if total_recent > 0:
+                success_count = sum(1 for test in recent_tests if test.get('test_success', False))
+                success_rate = (success_count / total_recent) * 100
+                
+                stats = {
+                    'total_recent_tests': total_recent,
+                    'successful_tests': success_count,
+                    'failed_tests': total_recent - success_count,
+                    'success_rate': round(success_rate, 2),
+                    'recent_tools': list(set(test.get('tool_name', 'Unknown') for test in recent_tests[:5]))
+                }
+                
+                print(f"📊 最近5分钟测试记录: {total_recent} 条")
+                print(f"📈 总体成功率: {success_count}/{total_recent} ({success_rate:.1f}%)")
+                
+                # 保存统计信息
+                with open('db_stats.json', 'w', encoding='utf-8') as f:
+                    json.dump(stats, f, ensure_ascii=False, indent=2)
+                
+                print("✅ 数据库验证成功")
+            else:
+                print("⚠️ 未检测到最近的测试记录")
+                stats = {'total_recent_tests': 0, 'message': 'No recent tests found'}
+                
+                with open('db_stats.json', 'w', encoding='utf-8') as f:
+                    json.dump(stats, f, ensure_ascii=False, indent=2)
+                    
+        except Exception as e:
+            print(f"❌ 数据库操作失败: {e}")
+            sys.exit(1)
+        EOF
+        
+        if uv run python verify_db_storage.py; then
+          echo "database_stats_available=true" >> $GITHUB_OUTPUT
+          echo "✅ 数据库统计信息已生成"
+        else
+          echo "database_verification_failed=true" >> $GITHUB_OUTPUT
+          echo "⚠️ 数据库验证失败"
+        fi
+      
+    - name: Upload Test Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-test-reports
+        path: |
+          data/test_results/
+          db_stats.json
+        retention-days: 30
+        
+    - name: Create Summary
+      if: always()
+      run: |
+        echo "# 🧪 MCP工具测试结果" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**测试URL:** \`${{ github.event.inputs.github_url }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**测试状态:** ${{ steps.test_mcp.outputs.test_status || '未知' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # 数据库存储状态
+        if [ "${{ steps.test_mcp.outputs.database_enabled }}" = "true" ]; then
+          echo "**数据库存储:** ✅ 已启用" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.verify_database.outputs.database_stats_available }}" = "true" ]; then
+            echo "**数据库验证:** ✅ 成功" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.verify_database.outputs.database_verification_failed }}" = "true" ]; then
+            echo "**数据库验证:** ❌ 失败" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "**数据库存储:** ⚠️ 未启用" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📄 测试报告" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "${{ steps.test_mcp.outputs.json_report }}" ]; then
+          echo "- JSON报告: \`${{ steps.test_mcp.outputs.json_report }}\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ steps.test_mcp.outputs.html_report }}" ]; then
+            echo "- HTML报告: \`${{ steps.test_mcp.outputs.html_report }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚠️ 未生成测试报告，请查看Actions日志了解详情。" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📦 完整测试数据已作为构建产物保存，可在Actions页面下载。" >> $GITHUB_STEP_SUMMARY

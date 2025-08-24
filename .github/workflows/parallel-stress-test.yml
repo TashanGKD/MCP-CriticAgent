@@ -1,0 +1,310 @@
+name: 🚀 Parallel MCP Stress Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_count:
+        description: '测试工具数量'
+        required: false
+        default: '20'
+        type: string
+      parallel_jobs:
+        description: '并行任务数'
+        required: false
+        default: '5'
+        type: string
+      timeout_seconds:
+        description: '单工具超时（秒）'
+        required: false
+        default: '120'
+        type: string
+
+jobs:
+  # 生成测试目标列表
+  generate-targets:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.generate.outputs.targets }}
+      total: ${{ steps.generate.outputs.total }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+    - name: Install dependencies
+      run: uv sync
+    
+    - name: Generate test targets
+      id: generate
+      run: |
+        TEST_COUNT="${{ github.event.inputs.test_count || '20' }}"
+        
+        echo "� 筛选简单可靠的MCP工具进行压力测试..."
+        echo "� 目标数量: $TEST_COUNT"
+        
+        export TEST_COUNT="$TEST_COUNT"
+        
+        # 使用简化的工具选择脚本
+        OUTPUT=$(uv run python scripts/simple_tool_selector.py)
+        
+        # 提取targets和total
+        TARGETS=$(echo "$OUTPUT" | grep "^targets=" | cut -d= -f2-)
+        TOTAL=$(echo "$OUTPUT" | grep "^total=" | cut -d= -f2)
+        
+        echo "targets=$TARGETS" >> $GITHUB_OUTPUT
+        echo "total=$TOTAL" >> $GITHUB_OUTPUT
+        
+        echo "✅ 生成了 $TOTAL 个可靠的测试目标"
+
+  # 并行压力测试
+  stress-test:
+    needs: generate-targets
+    runs-on: ubuntu-latest
+    if: needs.generate-targets.outputs.total > 0
+    
+    env:
+      # AI模型配置
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      DASHSCOPE_BASE_URL: ${{ secrets.DASHSCOPE_BASE_URL }}
+      DASHSCOPE_MODEL: ${{ secrets.DASHSCOPE_MODEL }}
+      
+      # Supabase数据库配置
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.generate-targets.outputs.targets) }}
+      max-parallel: ${{ fromJson(github.event.inputs.parallel_jobs || '5') }}
+      fail-fast: false
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+    - name: Install dependencies
+      run: uv sync
+      
+      - name: Complete MCP Tool Testing
+      id: test
+      run: |
+        PACKAGE="${{ matrix.target.package }}"
+        NAME="${{ matrix.target.name }}"
+        TIMEOUT="${{ github.event.inputs.timeout_seconds || '120' }}"
+        
+        echo "🧪 完整智能测试: $NAME ($PACKAGE)"
+        echo "🎯 质量等级: ${{ matrix.target.quality }}"
+        echo "⭐ 星数: ${{ matrix.target.stars }}"
+        echo "🤖 智能测试: 强制启用"
+        echo "🗄️ 数据库存储: 强制启用"
+        
+        # 检查必要的环境配置
+        if [ -z "$OPENAI_API_KEY" ] && [ -z "$DASHSCOPE_API_KEY" ]; then
+          echo "❌ 错误: 未配置AI API密钥，无法进行智能测试"
+          echo "请配置 OPENAI_API_KEY 或 DASHSCOPE_API_KEY"
+          exit 1
+        fi
+        
+        if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+          echo "❌ 错误: 未配置Supabase数据库，无法存储测试结果"
+          echo "请配置 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY"
+          exit 1
+        fi
+        
+        echo "✅ AI配置验证通过，启用智能测试"
+        echo "✅ 数据库配置验证通过，启用结果存储"
+        
+        # 执行完整智能测试（强制启用所有功能）
+        START_TIME=$(date +%s)
+        
+        if timeout "${TIMEOUT}s" uv run python -m src.main test-package "$PACKAGE" --timeout "$TIMEOUT" --verbose; then
+          STATUS="success"
+          echo "✅ 完整智能测试成功: $NAME"
+        else
+          STATUS="failed"
+          echo "❌ 完整智能测试失败: $NAME"
+        fi
+        
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+        
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        echo "duration=$DURATION" >> $GITHUB_OUTPUT
+        echo "package=$PACKAGE" >> $GITHUB_OUTPUT
+        echo "name=$NAME" >> $GITHUB_OUTPUT
+        echo "quality=${{ matrix.target.quality }}" >> $GITHUB_OUTPUT
+        echo "stars=${{ matrix.target.stars }}" >> $GITHUB_OUTPUT
+        
+        # 检查生成的报告
+        REPORT_DIR="data/test_results"
+        if [ -d "$REPORT_DIR" ]; then
+          LATEST_JSON=$(ls -t "$REPORT_DIR"/*.json 2>/dev/null | head -1)
+          LATEST_HTML=$(ls -t "$REPORT_DIR"/*.html 2>/dev/null | head -1)
+          
+          if [ -n "$LATEST_JSON" ]; then
+            echo "json_report=$LATEST_JSON" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ -n "$LATEST_HTML" ]; then  
+            echo "html_report=$LATEST_HTML" >> $GITHUB_OUTPUT
+          fi
+        fi
+        
+        # 保存详细测试结果到CSV
+        echo "$PACKAGE,$NAME,${{ matrix.target.quality }},${{ matrix.target.stars }},$STATUS,$DURATION" > test_result.csv    - name: Upload test result
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-result-${{ strategy.job-index }}
+        path: test_result.csv
+        retention-days: 7
+
+  # 汇总结果
+  collect-results:
+    needs: [generate-targets, stress-test]
+    runs-on: ubuntu-latest
+    if: always() && needs.generate-targets.outputs.total > 0
+    
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: test-result-*
+        path: results/
+        merge-multiple: true
+      
+    - name: Generate summary
+      run: |
+        echo "📊 汇总完整压力测试结果..."
+        
+        # 合并所有结果文件
+        if ls results/*.csv 1> /dev/null 2>&1; then
+          echo "package,name,quality,stars,status,duration" > all_results.csv
+          cat results/*.csv >> all_results.csv
+          
+          # 统计结果
+          TOTAL=$(tail -n +2 all_results.csv | wc -l)
+          SUCCESS=$(tail -n +2 all_results.csv | grep ",success," | wc -l)
+          FAILED=$(tail -n +2 all_results.csv | grep ",failed," | wc -l)
+          
+          if [ $TOTAL -gt 0 ]; then
+            SUCCESS_RATE=$(echo "scale=1; $SUCCESS * 100 / $TOTAL" | bc -l)
+          else
+            SUCCESS_RATE="0.0"
+          fi
+          
+          # 计算平均耗时
+          AVG_DURATION=$(tail -n +2 all_results.csv | cut -d, -f6 | awk '{sum+=$1; count++} END {printf "%.1f", count > 0 ? sum/count : 0}')
+          TOTAL_DURATION=$(tail -n +2 all_results.csv | cut -d, -f6 | awk '{sum+=$1} END {printf "%.1f", sum}')
+          
+          # 质量分布统计
+          QUALITY_EXCELLENT=$(tail -n +2 all_results.csv | grep ",优质," | wc -l)
+          QUALITY_GOOD=$(tail -n +2 all_results.csv | grep ",良好," | wc -l)
+          QUALITY_OTHER=$(($TOTAL - $QUALITY_EXCELLENT - $QUALITY_GOOD))
+          
+          echo "## 🚀 并行完整压力测试结果" > summary.md
+          echo "" >> summary.md
+          echo "**测试时间**: $(date)" >> summary.md
+          echo "**GitHub Action**: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> summary.md
+          echo "**测试模式**: 完整测试（智能分析 + 数据库存储）" >> summary.md
+          echo "" >> summary.md
+          
+          echo "### 📊 测试统计" >> summary.md
+          echo "- 🎯 测试总数: $TOTAL" >> summary.md
+          echo "- ✅ 成功数量: $SUCCESS" >> summary.md
+          echo "- ❌ 失败数量: $FAILED" >> summary.md
+          echo "- 📈 成功率: ${SUCCESS_RATE}%" >> summary.md
+          echo "- ⏱️ 总耗时: ${TOTAL_DURATION}s" >> summary.md
+          echo "- ⏱️ 平均耗时: ${AVG_DURATION}s" >> summary.md
+          echo "" >> summary.md
+          
+          echo "### 📊 质量分布" >> summary.md
+          echo "- 🌟 优质工具: $QUALITY_EXCELLENT" >> summary.md
+          echo "- 👍 良好工具: $QUALITY_GOOD" >> summary.md
+          echo "- 📦 其他工具: $QUALITY_OTHER" >> summary.md
+          echo "" >> summary.md
+          
+          echo "### ⚙️ 测试配置" >> summary.md
+          echo "- **测试类型**: 完整智能测试（强制启用）" >> summary.md
+          echo "- **AI智能分析**: 强制启用" >> summary.md
+          echo "- **数据库存储**: 强制启用" >> summary.md
+          echo "- **工具评估**: 启用（包含可持续性和受欢迎程度评分）" >> summary.md
+          echo "- **并行任务数**: ${{ github.event.inputs.parallel_jobs || '5' }}" >> summary.md
+          echo "- **单工具超时**: ${{ github.event.inputs.timeout_seconds || '120' }}s" >> summary.md
+          echo "- **排除类型**: 浏览器自动化相关工具" >> summary.md
+          echo "" >> summary.md
+          
+          # 显示成功的优质工具
+          if [ $SUCCESS -gt 0 ]; then
+            echo "### ✅ 成功测试的工具" >> summary.md
+            echo "" >> summary.md
+            echo "| 工具名称 | 包名 | 质量等级 | 星数 | 耗时(s) |" >> summary.md
+            echo "|---------|------|----------|------|---------|" >> summary.md
+            
+            tail -n +2 all_results.csv | grep ",success," | head -10 | while IFS=',' read package name quality stars status duration; do
+              echo "| $name | \`$package\` | $quality | $stars | $duration |" >> summary.md
+            done
+            echo "" >> summary.md
+          fi
+          
+          # 显示失败的工具
+          if [ $FAILED -gt 0 ]; then
+            echo "### ❌ 失败的工具" >> summary.md
+            echo "" >> summary.md
+            echo "| 工具名称 | 包名 | 质量等级 | 星数 | 耗时(s) |" >> summary.md
+            echo "|---------|------|----------|------|---------|" >> summary.md
+            
+            tail -n +2 all_results.csv | grep ",failed," | head -5 | while IFS=',' read package name quality stars status duration; do
+              echo "| $name | \`$package\` | $quality | $stars | $duration |" >> summary.md
+            done
+            echo "" >> summary.md
+          fi
+          
+          echo "---" >> summary.md
+          echo "**Generated by GitHub Actions** 🤖" >> summary.md
+          
+          cat summary.md
+          
+        else
+          echo "❌ 没有找到测试结果文件"
+          echo "## ❌ 完整压力测试失败" > summary.md
+          echo "没有收集到任何测试结果" >> summary.md
+        fi
+      
+    - name: Upload final results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: stress-test-summary
+        path: |
+          all_results.csv
+          summary.md
+        retention-days: 30
