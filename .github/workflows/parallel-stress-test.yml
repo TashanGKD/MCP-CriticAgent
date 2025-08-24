@@ -179,7 +179,9 @@ jobs:
         fi
         
         # 保存详细测试结果到CSV
-        echo "$PACKAGE,$NAME,${{ matrix.target.quality }},${{ matrix.target.stars }},$STATUS,$DURATION" > test_result.csv    - name: Upload test result
+        echo "$PACKAGE,$NAME,${{ matrix.target.quality }},${{ matrix.target.stars }},$STATUS,$DURATION" > test_result.csv
+        
+    - name: Upload test result
       uses: actions/upload-artifact@v4
       if: always()
       with:
