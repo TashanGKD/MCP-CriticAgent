@@ -54,10 +54,18 @@ class MCPTester:
         parser, _ = self._get_services()
         return parser.find_tool_by_url(url)
     
-    def deploy_tool(self, package_name: str, timeout: int):
+    def deploy_tool(self, package_name: str, timeout: int, run_command: str = None):
         """部署MCP工具"""
-        _, deployer = self._get_services()
-        return deployer.deploy_package(package_name, timeout)
+        parser, deployer = self._get_services()
+        
+        # 如果没有提供run_command，尝试从CSV中查找工具信息获取正确的运行命令
+        if not run_command:
+            tool_info = parser.find_tool_by_package(package_name)
+            if tool_info and hasattr(tool_info, 'run_command') and tool_info.run_command:
+                run_command = tool_info.run_command
+                print(f"📋 使用CSV中的运行命令: {run_command}")
+        
+        return deployer.deploy_package(package_name, timeout, run_command)
     
     def cleanup_server(self, server_id: str):
         """清理服务器"""

@@ -180,9 +180,9 @@ class MCPDataParser:
                 # LobeHub评分信息 
                 lobehub_url=str(normalized_row.get('url', '')).strip() if pd.notna(normalized_row.get('url')) else None,
                 lobehub_evaluate=str(normalized_row.get('evaluate', '')).strip() if pd.notna(normalized_row.get('evaluate')) else None,
-                lobehub_score=pd.to_numeric(normalized_row.get('Unnamed: 5'), errors='coerce'),
-                lobehub_star_count=pd.to_numeric(normalized_row.get('star_count'), errors='coerce'),
-                lobehub_fork_count=pd.to_numeric(normalized_row.get('fork_count'), errors='coerce'),
+                lobehub_score=pd.to_numeric(normalized_row.get('Unnamed: 5'), errors='coerce') if pd.notna(normalized_row.get('Unnamed: 5')) else None,
+                lobehub_star_count=int(pd.to_numeric(normalized_row.get('star_count'), errors='coerce')) if pd.notna(pd.to_numeric(normalized_row.get('star_count'), errors='coerce')) else 0,
+                lobehub_fork_count=int(pd.to_numeric(normalized_row.get('fork_count'), errors='coerce')) if pd.notna(pd.to_numeric(normalized_row.get('fork_count'), errors='coerce')) else 0,
             )
             
         except Exception as e:

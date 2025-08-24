@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mcp_tools>
+    <tool>
+        <name>Excel MCP Server</name>
+        <type>data_processing</type>
+        <runtime>uvx</runtime>
+        <requires_api_key>false</requires_api_key>
+        <capabilities>
+            <capability>read_excel</capability>
+            <capability>write_excel</capability>
+            <capability>format_cells</capability>
+            <capability>create_charts</capability>
+        </capabilities>
+    </tool>
+    <tool>
+        <name>Context7</name>
+        <type>documentation</type>
+        <runtime>npx</runtime>
+        <requires_api_key>false</requires_api_key>
+        <capabilities>
+            <capability>resolve_library_id</capability>
+            <capability>get_library_docs</capability>
+        </capabilities>
+    </tool>
+</mcp_tools>

@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<configuration><database><host>localhost</host><port>5432</port><name>mcp_test</name></database><api><base_url>https://api.example.com</base_url><timeout>30</timeout></api></configuration>

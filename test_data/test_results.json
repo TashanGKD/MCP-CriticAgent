@@ -1,0 +1,31 @@
+{
+  "test_session": {
+    "id": "test_20240824_001",
+    "timestamp": "2025-08-24T20:44:17.151852",
+    "total_tests": 25,
+    "passed": 20,
+    "failed": 5,
+    "duration": 120.5
+  },
+  "test_cases": [
+    {
+      "name": "MCP连接测试",
+      "status": "passed",
+      "duration": 2.3,
+      "message": "成功建立MCP连接"
+    },
+    {
+      "name": "工具列表获取",
+      "status": "passed",
+      "duration": 1.8,
+      "message": "成功获取15个可用工具"
+    },
+    {
+      "name": "Excel文件操作",
+      "status": "failed",
+      "duration": 5.2,
+      "message": "文件路径错误",
+      "error": "Invalid filename: test.xlsx, must be an absolute path"
+    }
+  ]
+}

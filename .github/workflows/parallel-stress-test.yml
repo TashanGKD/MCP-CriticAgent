@@ -40,6 +40,25 @@ jobs:
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+    - name: Set up Node.js (for generate-targets)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: Verify runtime environments (generate-targets)
+      run: |
+        echo "🔍 验证运行时环境..."
+        
+        # 使用专门的验证脚本
+        uv run python scripts/verify_action_runtime.py
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ 运行时环境验证通过"
+        else
+          echo "❌ 运行时环境验证失败"
+          exit 1
+        fi
       
     - name: Install dependencies
       run: uv sync
@@ -109,6 +128,20 @@ jobs:
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+    - name: Verify runtime environments (stress-test)
+      run: |
+        echo "🔍 验证运行时环境..."
+        
+        # 使用专门的验证脚本
+        uv run python scripts/verify_action_runtime.py
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ 运行时环境验证通过"
+        else
+          echo "❌ 运行时环境验证失败"
+          exit 1
+        fi
       
     - name: Install dependencies
       run: uv sync

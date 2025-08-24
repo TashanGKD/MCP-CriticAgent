@@ -1,0 +1,20 @@
+{
+  "app_name": "MCP Test Framework",
+  "version": "1.0.0",
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "mcp_test",
+    "ssl": true
+  },
+  "api_endpoints": {
+    "base_url": "https://api.example.com",
+    "timeout": 30,
+    "retry_count": 3
+  },
+  "features": {
+    "smart_testing": true,
+    "database_export": true,
+    "report_generation": true
+  }
+}

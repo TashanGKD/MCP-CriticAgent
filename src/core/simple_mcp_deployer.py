@@ -176,7 +176,9 @@ def detect_simple_platform() -> Dict[str, Any]:
         'architecture': platform.architecture()[0],
         'python_version': platform.python_version(),
         'node_available': False,
-        'npx_path': None
+        'npx_path': None,
+        'uv_available': False,
+        'uvx_path': None
     }
     
     # 检查Node.js和npx
@@ -193,6 +195,21 @@ def detect_simple_platform() -> Dict[str, Any]:
                 platform_info['npx_version'] = result.stdout.strip()
     except Exception as e:
         print(f"⚠️ Node.js环境检测失败: {e}")
+    
+    # 检查uv和uvx
+    try:
+        uvx_path = shutil.which("uvx")
+        if uvx_path:
+            platform_info['uv_available'] = True
+            platform_info['uvx_path'] = uvx_path
+            
+            # 检查uvx版本
+            result = subprocess.run([uvx_path, "--version"], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                platform_info['uvx_version'] = result.stdout.strip()
+    except Exception as e:
+        print(f"⚠️ UV环境检测失败: {e}")
     
     return platform_info
 
@@ -214,8 +231,126 @@ class SimpleMCPDeployer:
         self.active_servers = {}  # server_id -> SimpleMCPServerInfo
         self.platform_info = detect_simple_platform()
         print(f"🖥️ 平台信息: {self.platform_info['system']} ({self.platform_info['architecture']})")
+    
+    def detect_simple_platform(self, github_url: str) -> tuple[str, str]:
+        """根据GitHub URL检测简单平台类型（运行时）
         
-    def _try_start_process(self, cmd, creation_flags, display_name, run_command, package_name):
+        Args:
+            github_url: GitHub仓库URL
+            
+        Returns:
+            (runtime_type, runtime_command): 运行时类型和对应的命令路径
+        """
+        # 检查URL中是否包含uvx的指示信息
+        uvx_indicators = [
+            '/uv-',         # 包含uv-前缀
+            'uvx://',       # uvx协议
+            'uv-mcp',       # uv-mcp字样
+            '-uv-',         # 中间包含-uv-
+            'uv_mcp',       # uv_mcp字样（下划线）
+        ]
+        
+        if any(indicator in github_url for indicator in uvx_indicators):
+            return "uvx", self._get_uvx_command()
+        
+        # 默认使用npx
+        return "npx", self._get_npx_command()
+    
+    def _get_npx_command(self) -> str:
+        """获取npx命令路径"""
+        if self.platform_info['node_available'] and self.platform_info['npx_path']:
+            return self.platform_info['npx_path']
+        return "npx"
+    
+    def _get_uvx_command(self) -> str:
+        """获取uvx命令路径"""
+        if self.platform_info['uv_available'] and self.platform_info['uvx_path']:
+            return self.platform_info['uvx_path']  
+        return "uvx"
+        
+    def _get_runtime_info(self, run_command: str = None, package_name: str = None) -> Dict[str, Any]:
+        """获取运行时信息（npx或uvx）
+        
+        Args:
+            run_command: 完整的运行命令，如 "uvx excel-mcp-server stdio"
+            package_name: 包名（当没有run_command时使用）
+            
+        Returns:
+            包含runtime_type, runtime_path, display_name等的字典
+        """
+        runtime_info = {
+            'runtime_type': 'npx',  # 默认使用npx
+            'runtime_path': None,
+            'display_name': package_name or 'unknown',
+            'available': False
+        }
+        
+        # 从run_command推断运行时类型
+        if run_command:
+            cmd_parts = run_command.split()
+            if cmd_parts and cmd_parts[0] in ['uvx', 'npx']:
+                runtime_info['runtime_type'] = cmd_parts[0]
+                runtime_info['display_name'] = cmd_parts[-1] if len(cmd_parts) > 1 else cmd_parts[0]
+            else:
+                # 如果不是以uvx或npx开头，假设是包名，默认使用npx
+                runtime_info['display_name'] = run_command.split()[-1]
+        
+        # 检查对应的运行时是否可用
+        if runtime_info['runtime_type'] == 'uvx':
+            if self.platform_info['uv_available']:
+                runtime_info['runtime_path'] = self.platform_info['uvx_path']
+                runtime_info['available'] = True
+            else:
+                print(f"⚠️ uvx不可用，fallback到npx")
+                runtime_info['runtime_type'] = 'npx'
+        
+        if runtime_info['runtime_type'] == 'npx':
+            if self.platform_info['node_available']:
+                runtime_info['runtime_path'] = self.platform_info['npx_path']
+                runtime_info['available'] = True
+        
+        return runtime_info
+
+    def _build_runtime_command(self, runtime_info: Dict[str, Any], run_command: str = None, package_name: str = None) -> List[str]:
+        """构建运行时命令
+        
+        Args:
+            runtime_info: 运行时信息
+            run_command: 完整的运行命令
+            package_name: 包名
+            
+        Returns:
+            命令列表
+        """
+        runtime_path = runtime_info['runtime_path']
+        runtime_type = runtime_info['runtime_type']
+        
+        if run_command:
+            # 处理占位符
+            processed_command = run_command.replace('[transport]', 'stdio')
+            
+            # 解析完整的run_command
+            cmd_parts = processed_command.split()
+            if cmd_parts[0] in ['npx', 'uvx']:
+                # 替换第一个词为实际的运行时路径
+                if runtime_type == 'npx':
+                    return [runtime_path] + cmd_parts[1:]
+                else:  # uvx
+                    return [runtime_path] + cmd_parts[1:]
+            else:
+                # 不是标准格式，添加运行时前缀
+                if runtime_type == 'npx':
+                    return [runtime_path, "-y"] + cmd_parts
+                else:  # uvx
+                    return [runtime_path] + cmd_parts
+        else:
+            # 使用包名构建命令
+            if runtime_type == 'npx':
+                return [runtime_path, "-y", package_name]
+            else:  # uvx
+                return [runtime_path, package_name]
+
+    def _try_start_process(self, cmd, creation_flags, display_name, run_command, package_name, runtime_info):
         """尝试启动进程，带--stdio回退机制"""
         try:
             # 构建进程参数（跨平台兼容）
@@ -255,8 +390,12 @@ class SimpleMCPDeployer:
                     print(f"⚠️ {display_name} 不支持额外参数，尝试纯净启动...")
                     
                     # 重新构建命令（仅包含包名）
-                    npx_path = self.platform_info['npx_path']
-                    fallback_cmd = [npx_path, "-y", package_name]
+                    runtime_type = runtime_info['runtime_type']
+                    runtime_path = runtime_info['runtime_path']
+                    if runtime_type == 'npx':
+                        fallback_cmd = [runtime_path, "-y", package_name]
+                    else:  # uvx
+                        fallback_cmd = [runtime_path, package_name]
                     print(f"📝 回退命令: {' '.join(fallback_cmd)}")
                     
                     process = subprocess.Popen(fallback_cmd, **popen_kwargs)
@@ -270,43 +409,57 @@ class SimpleMCPDeployer:
             print(f"❌ 启动进程失败: {e}")
             return None
         
-    def deploy_package(self, package_name: str, timeout: int = 30, run_command: str = None) -> Optional[SimpleMCPServerInfo]:
+    def deploy_package(self, package_name: str, timeout: int = 30, run_command: str = None, github_url: str = None) -> Optional[SimpleMCPServerInfo]:
         """部署MCP包
         
         Args:
             package_name: 包名（仅在run_command为空时使用）
             timeout: 超时时间
             run_command: 完整的运行命令（优先使用，来自CSV数据）
+            github_url: GitHub URL（用于智能运行时检测）
         """
         if not package_name and not run_command:
             print("❌ 包名和运行命令都不能为空")
             return None
             
-        display_name = run_command.split()[-1] if run_command else package_name
+        # 如果提供了GitHub URL，尝试智能检测运行时
+        if github_url and not run_command:
+            runtime_type, runtime_cmd = self.detect_simple_platform(github_url)
+            print(f"🔍 根据GitHub URL检测到运行时: {runtime_type}")
+            
+            # 构建基于GitHub URL的运行命令
+            if runtime_type == "uvx" and "/uv-" in github_url:
+                # 从GitHub URL中提取包名或使用--from参数
+                if package_name:
+                    run_command = f"uvx {package_name}"
+                else:
+                    run_command = f"uvx --from git+{github_url} mcp-server"
+            elif runtime_type == "npx":
+                run_command = f"npx -y {package_name}" if package_name else None
+
+        # 获取运行时信息
+        runtime_info = self._get_runtime_info(run_command, package_name)
+        display_name = runtime_info['display_name']
+        runtime_type = runtime_info['runtime_type']
+        
         server_id = f"mcp_{uuid.uuid4().hex[:8]}"
         print(f"🚀 开始部署: {display_name}")
         print(f"🆔 服务器ID: {server_id}")
+        print(f"🔧 运行时: {runtime_type}")
         
         try:
-            # 检查Node.js环境
-            if not self.platform_info['node_available']:
-                raise Exception("Node.js/npx不可用，请先安装Node.js")
-            
-            npx_path = self.platform_info['npx_path']
-            print(f"✅ 找到npx: {npx_path}")
-            
-            # 构建启动命令 - 优先使用run_command
-            if run_command:
-                # 解析完整的run_command
-                cmd_parts = run_command.split()
-                if cmd_parts[0] == "npx":
-                    cmd = [npx_path] + cmd_parts[1:]
+            # 检查运行时环境
+            if not runtime_info['available']:
+                if runtime_type == 'uvx':
+                    raise Exception("uvx不可用，请先安装uv: curl -LsSf https://astral.sh/uv/install.sh | sh")
                 else:
-                    cmd = [npx_path, "-y"] + cmd_parts
-            else:
-                # 默认不添加 --stdio，因为很多MCP工具不支持这个参数
-                cmd = [npx_path, "-y", package_name]
+                    raise Exception("npx不可用，请先安装Node.js")
             
+            runtime_path = runtime_info['runtime_path']
+            print(f"✅ 找到{runtime_type}: {runtime_path}")
+            
+            # 构建启动命令
+            cmd = self._build_runtime_command(runtime_info, run_command, package_name)
             print(f"📝 执行命令: {' '.join(cmd)}")
             
             # 启动MCP服务器进程
@@ -314,7 +467,7 @@ class SimpleMCPDeployer:
             if self.platform_info['system'] == 'Windows':
                 creation_flags = subprocess.CREATE_NO_WINDOW
             
-            process = self._try_start_process(cmd, creation_flags, display_name, run_command, package_name)
+            process = self._try_start_process(cmd, creation_flags, display_name, run_command, package_name, runtime_info)
             if not process:
                 return None
                 

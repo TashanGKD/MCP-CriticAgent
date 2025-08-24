@@ -1,0 +1,36 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "笔记本电脑",
+      "price": 5999,
+      "category": "电子产品",
+      "stock": 50
+    },
+    {
+      "id": 2,
+      "name": "无线鼠标",
+      "price": 199,
+      "category": "配件",
+      "stock": 200
+    },
+    {
+      "id": 3,
+      "name": "机械键盘",
+      "price": 599,
+      "category": "配件",
+      "stock": 80
+    },
+    {
+      "id": 4,
+      "name": "显示器",
+      "price": 1999,
+      "category": "电子产品",
+      "stock": 30
+    }
+  ],
+  "meta": {
+    "total_products": 4,
+    "last_updated": "2025-08-24T20:48:34.328001"
+  }
+}

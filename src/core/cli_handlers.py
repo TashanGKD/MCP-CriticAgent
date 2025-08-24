@@ -268,8 +268,20 @@ class CLIHandler:
     
     def _deploy_tool(self, tool_info: MCPToolInfo, config: TestConfig):
         """部署工具 - 单一职责"""
-        if not tool_info.package_name:
-            rprint("[red]❌ 该工具缺少包名信息，无法部署[/red]")
+        # 尝试从run_command中提取包名（如果package_name为空）
+        package_name = tool_info.package_name
+        run_command = getattr(tool_info, 'run_command', None)
+        
+        if not package_name and run_command:
+            # 从run_command中提取包名
+            cmd_parts = run_command.split()
+            if len(cmd_parts) >= 2:
+                # 对于 "uvx excel-mcp-server stdio" 这样的命令，包名是第二个部分
+                package_name = cmd_parts[1]
+                rprint(f"[blue]📋 从运行命令中提取包名: {package_name}[/blue]")
+        
+        if not package_name:
+            rprint("[red]❌ 该工具缺少包名信息且无法从运行命令中提取，无法部署[/red]")
             return None
         
         if tool_info.requires_api_key:
@@ -277,7 +289,8 @@ class CLIHandler:
             rprint("[yellow]⚠️ 请确保已在.env文件中配置相应的API密钥[/yellow]")
         
         rprint("[blue]🚀 正在部署MCP工具...[/blue]")
-        server_info = self.tester.deploy_tool(tool_info.package_name, config.timeout)
+        # 传递run_command给deploy_tool方法
+        server_info = self.tester.deploy_tool(package_name, config.timeout, run_command)
         
         if not server_info:
             rprint("[red]❌ MCP工具部署失败[/red]")

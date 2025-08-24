@@ -1,0 +1,5 @@
+工具名称,类型,描述,支持运行时,是否需要API密钥,GitHub地址
+Excel MCP Server,数据处理,用于操作Excel文件的MCP服务器,uvx,否,https://github.com/haris-musa/excel-mcp-server
+Context7,文档检索,获取最新的库文档,npx,否,https://github.com/upstash/context7
+Blender MCP,3D建模,通过MCP控制Blender,uvx,否,https://github.com/ahujasid/blender-mcp
+ElevenLabs MCP,语音合成,文本转语音服务,uvx,是,https://github.com/elevenlabs/elevenlabs-mcp

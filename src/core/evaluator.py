@@ -439,6 +439,7 @@ def calculate_comprehensive_score_from_tests(github_url: str, supabase_client=No
         return {
             'success_rate': None,
             'test_count': 0,
+            'successful_tests': 0,
             'github_evaluation_score': None,
             'comprehensive_score': None,
             'message': f'Error calculating comprehensive score: {e}'
@@ -466,9 +467,9 @@ def evaluate_full_repository_with_comprehensive_score(github_url: str, supabase_
     
     # 3. 计算综合评分
     evaluator_score = basic_evaluation['final_score']
-    success_rate = success_rate_result['success_rate'] if success_rate_result else None
-    test_count = success_rate_result['test_count'] if success_rate_result else 0
-    successful_tests = success_rate_result['successful_tests'] if success_rate_result else 0
+    success_rate = success_rate_result.get('success_rate') if success_rate_result else None
+    test_count = success_rate_result.get('test_count', 0) if success_rate_result else 0
+    successful_tests = success_rate_result.get('successful_tests', 0) if success_rate_result else 0
     
     # 按1:2权重计算综合评分
     if success_rate is not None:
