@@ -61,16 +61,16 @@ jobs:
         
         echo "🎯 开始完整 MCP 工具测试"
         echo "📍 测试URL: $GITHUB_URL"
-        echo "🤖 智能测试模式: 已启用"
+        echo "🤖 智能测试模式: 默认启用"
+        echo "🗃️ 数据库导出: 默认启用"
         echo "⏱️ 超时时间: 600秒"
         
         # 检查AI配置
         if [ -n "$OPENAI_API_KEY" ] || [ -n "$DASHSCOPE_API_KEY" ]; then
           echo "✅ AI配置已检测到，将使用智能测试模式"
-          USE_SMART="--smart"
         else
-          echo "⚠️ 未检测到AI配置，使用基础测试模式"
-          USE_SMART=""
+          echo "⚠️ 未检测到AI配置，将禁用智能测试"
+          USE_NO_SMART="--no-smart"
         fi
         
         # 检查数据库配置
@@ -78,20 +78,13 @@ jobs:
           echo "✅ Supabase数据库配置已检测到，将启用数据库存储"
           DATABASE_ENABLED="true"
         else
-          echo "⚠️ 未检测到Supabase配置，跳过数据库存储"
+          echo "⚠️ 未检测到Supabase配置，将禁用数据库导出"
           DATABASE_ENABLED="false"
+          USE_NO_DB="--no-db-export"
         fi
         
-        # 执行完整测试 - 使用当前主程序逻辑
-        if [ "$DATABASE_ENABLED" = "true" ]; then
-          echo "🗄️ 启用数据库导出模式"
-          DB_EXPORT_FLAG="--db-export"
-        else
-          echo "📄 仅文件报告模式"
-          DB_EXPORT_FLAG=""
-        fi
-        
-        uv run python -m src.main test-url "$GITHUB_URL" --timeout 600 --verbose $USE_SMART $DB_EXPORT_FLAG || {
+        # 执行完整测试 - 使用新的默认参数（smart、db-export、evaluate默认开启）
+        uv run python -m src.main test-url "$GITHUB_URL" --timeout 600 --verbose ${USE_NO_SMART:-} ${USE_NO_DB:-} || {
           echo "❌ 测试失败，但继续生成报告"
           exit_code=$?
         }

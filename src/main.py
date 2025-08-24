@@ -50,19 +50,21 @@ def test_single_url(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出模式"),
     save_report: bool = typer.Option(True, "--save-report/--no-save-report", help="保存测试报告"),
     cleanup: bool = typer.Option(True, "--cleanup/--no-cleanup", help="自动清理"),
-    smart: bool = typer.Option(False, "--smart/--no-smart", help="启用AI智能测试"),
-    db_export: bool = typer.Option(False, "--db-export", help="导出结果到数据库")
+    smart: bool = typer.Option(True, "--smart/--no-smart", help="启用AI智能测试（默认开启）"),
+    db_export: bool = typer.Option(True, "--db-export/--no-db-export", help="导出结果到数据库（默认开启）"),
+    evaluate: bool = typer.Option(True, "--evaluate/--no-evaluate", help="对工具进行评估（默认开启）")
 ):
     """测试单个 MCP 工具 URL"""
     rprint(f"[bold green]🎯 开始测试 MCP 工具:[/bold green] {url}")
     
-    config = TestConfig(timeout, verbose, smart, cleanup, save_report, db_export)
+    config = TestConfig(timeout, verbose, smart, cleanup, save_report, db_export, evaluate)
     success = handler.test_url(url, config)
     
     if success:
         rprint(f"\n[bold green]🎉 {url} 测试完成！[/bold green]")
     else:
         raise typer.Exit(1)
+
 
 @app.command("test-package")
 def test_package(
@@ -71,13 +73,14 @@ def test_package(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出模式"),
     save_report: bool = typer.Option(True, "--save-report/--no-save-report", help="保存测试报告"),
     cleanup: bool = typer.Option(True, "--cleanup/--no-cleanup", help="自动清理"),
-    smart: bool = typer.Option(False, "--smart/--no-smart", help="启用AI智能测试"),
-    db_export: bool = typer.Option(False, "--db-export", help="导出结果到数据库")
+    smart: bool = typer.Option(True, "--smart/--no-smart", help="启用AI智能测试（默认开启）"),
+    db_export: bool = typer.Option(True, "--db-export/--no-db-export", help="导出结果到数据库（默认开启）"),
+    evaluate: bool = typer.Option(True, "--evaluate/--no-evaluate", help="对工具进行评估（默认开启）")
 ):
     """直接测试指定的 MCP 包"""
     rprint(f"[bold green]📦 开始测试 MCP 包:[/bold green] {package}")
     
-    config = TestConfig(timeout, verbose, smart, cleanup, save_report, db_export)
+    config = TestConfig(timeout, verbose, smart, cleanup, save_report, db_export, evaluate)
     success = handler.test_package(package, config)
     
     if success:

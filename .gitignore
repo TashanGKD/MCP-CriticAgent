@@ -109,3 +109,6 @@ db_stats.json
 
 # GitHub Actions logs
 .github/workflows/*.log
+CLAUDE.md
+GEMINI.md
+QWEN.md

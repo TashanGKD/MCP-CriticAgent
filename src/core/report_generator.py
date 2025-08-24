@@ -61,6 +61,7 @@ class MCPTestReport:
     tool_info: MCPToolInfo
     test_results: List[TestResult]
     error_messages: List[str]
+    evaluation_result: Optional[dict] = None
     
     # 环境信息
     platform_info: str = platform.system()
@@ -76,7 +77,7 @@ class MCPReportGenerator:
     def create_report(self, url: str, tool_info: MCPToolInfo, server_info, 
                      test_success: bool, duration: float,
                      test_results: List[TestResult] = None,
-                     error_messages: List[str] = None) -> MCPTestReport:
+                     error_messages: List[str] = None, evaluation_result: Optional[dict] = None) -> MCPTestReport:
         """创建报告对象 - 单一职责"""
         
         # 处理tool_info为None的情况（用于package测试）
@@ -93,6 +94,7 @@ class MCPReportGenerator:
             tool_info=tool_info,
             test_results=test_results or [],
             error_messages=error_messages or [],
+            evaluation_result=evaluation_result,
             process_pid=server_info.process.pid if server_info else None
         )
     
@@ -121,6 +123,18 @@ class MCPReportGenerator:
         success_rate = (passed / total * 100) if total > 0 else 0
         
         # 生成HTML - 单一模板，无条件分支
+        lobehub_section = ""
+        if report.tool_info and hasattr(report.tool_info, 'lobehub_evaluate') and report.tool_info.lobehub_evaluate:
+            lobehub_section = f'''
+<h2>LobeHub 评分</h2>
+<div class="stats">
+<div class="stat"><div>质量等级</div><div>{report.tool_info.lobehub_evaluate}</div></div>
+<div class="stat"><div>评分</div><div>{report.tool_info.lobehub_score or 'N/A'}</div></div>
+<div class="stat"><div>Stars</div><div>{report.tool_info.lobehub_star_count or 0}</div></div>
+<div class="stat"><div>Forks</div><div>{report.tool_info.lobehub_fork_count or 0}</div></div>
+</div>
+{f'<p>📱 <a href="{report.tool_info.lobehub_url}" target="_blank">LobeHub 页面</a></p>' if report.tool_info.lobehub_url else ''}'''
+
         html_content = f'''<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>{report.tool_name} 测试报告</title>
 <style>body{{font-family:sans-serif;margin:40px;}}
@@ -128,6 +142,7 @@ class MCPReportGenerator:
 .stats{{display:flex;gap:20px;margin:20px 0;}}
 .stat{{background:#f5f5f5;padding:15px;border-radius:8px;text-align:center;}}
 .success{{color:#28a745;}} .failure{{color:#dc3545;}}
+a{{color:#667eea;text-decoration:none;}} a:hover{{text-decoration:underline;}}
 </style></head>
 <body>
 <div class="header">
@@ -141,6 +156,8 @@ class MCPReportGenerator:
 <div class="stat"><div>工具数</div><div>{report.available_tools_count}</div></div>
 <div class="stat"><div>成功率</div><div>{success_rate:.1f}%</div></div>
 </div>
+
+{lobehub_section}
 
 <h2>测试结果</h2>
 <table style="width:100%;border-collapse:collapse;">
@@ -167,6 +184,7 @@ _generator = MCPReportGenerator()
 
 def generate_test_report(url: str, tool_info, server_info, test_success: bool, 
                         duration: float, test_results: List = None, 
+                        evaluation_result: Optional[dict] = None, 
                         formats: List[str] = None) -> Dict[str, str]:
     """便捷的报告生成函数 - 保持向后兼容"""
     
@@ -174,7 +192,7 @@ def generate_test_report(url: str, tool_info, server_info, test_success: bool,
     
     # 创建报告
     report = _generator.create_report(url, tool_info, server_info, test_success, 
-                                     duration, test_results)
+                                     duration, test_results, evaluation_result=evaluation_result)
     
     # 生成文件
     files = {}

@@ -30,6 +30,7 @@ class TestConfig:
     cleanup: bool = True
     save_report: bool = True
     db_export: bool = False
+    evaluate: bool = True
 
 
 class MCPTester:

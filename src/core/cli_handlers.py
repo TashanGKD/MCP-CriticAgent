@@ -20,14 +20,72 @@ from rich import print as rprint
 
 from src.core.tester import get_mcp_tester, TestConfig
 from src.core.report_generator import generate_test_report
-from src.utils.csv_parser import MCPToolInfo
-
+from src.utils.csv_parser import MCPToolInfo, get_mcp_parser
+from src.core.evaluator import evaluate_full_repository_profile
 
 class CLIHandler:
     """CLI命令处理器 - 统一处理模式"""
     
     def __init__(self):
         self.tester = get_mcp_tester()
+
+    def evaluate_tools(self, db_export: bool):
+        """评估所有工具 - 主要流程"""
+        try:
+            parser = get_mcp_parser()
+            tools = parser.get_all_tools()
+            if not tools:
+                rprint("[red]❌ 没有找到可评估的工具。[/red]")
+                return
+
+            for tool in tools:
+                if not tool.github_url:
+                    continue
+
+                rprint(f"[blue]🔍 正在评估: {tool.name}[/blue]")
+                evaluation_result = evaluate_full_repository_profile(tool.github_url)
+
+                if evaluation_result["status"] == "success":
+                    rprint(f"[green]✅ 评估完成: {tool.name} - 分数: {evaluation_result['final_score']}[/green]")
+                    if db_export:
+                        self._export_evaluation_to_database(tool.github_url, evaluation_result)
+                else:
+                    rprint(f"[red]❌ 评估失败: {tool.name} - {evaluation_result['message']}[/red]")
+
+        except Exception as e:
+            rprint(f"[red]❌ 评估过程发生错误: {e}[/red]")
+
+    def _export_evaluation_to_database(self, github_url: str, evaluation_result: dict):
+        """导出评估结果到数据库"""
+        try:
+            import os
+            from supabase import create_client
+            from datetime import datetime
+
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+
+            if not supabase_url or not supabase_key:
+                rprint("[yellow]⚠️ 数据库配置未设置，跳过数据库导出[/yellow]")
+                return
+
+            client = create_client(supabase_url, supabase_key)
+
+            record = {
+                'github_url': github_url,
+                'final_score': evaluation_result['final_score'],
+                'sustainability_score': evaluation_result['sustainability']['total_score'],
+                'popularity_score': evaluation_result['popularity']['total_score'],
+                'sustainability_details': evaluation_result['sustainability']['details'],
+                'popularity_details': evaluation_result['popularity']['details'],
+                'last_evaluated_at': datetime.now().isoformat(),
+            }
+
+            client.table('mcp_repository_evaluations').upsert(record).execute()
+            rprint(f"[green]✅ 成功导出评估结果到数据库: {github_url}[/green]")
+
+        except Exception as e:
+            rprint(f"[yellow]⚠️ 数据库导出异常: {e}[/yellow]")
     
     def test_url(self, url: str, config: TestConfig) -> bool:
         """测试URL - 主要流程"""
@@ -45,14 +103,22 @@ class CLIHandler:
             # 3. 执行测试
             success, test_results = self._run_tests(tool_info, server_info, config)
             
+            # 3.5. 评估工具
+            evaluation_result = None
+            if config.evaluate:
+                rprint("[blue]🔍 正在评估工具...[/blue]")
+                evaluation_result = evaluate_full_repository_profile(tool_info.github_url)
+                if evaluation_result and evaluation_result.get("status") == "success":
+                    self._display_evaluation_result(evaluation_result)
+
             # 4. 生成报告
             report_files = {}
             if config.save_report:
-                report_files = self._save_report(url, tool_info, server_info, success, test_results, server_info.start_time)
+                report_files = self._save_report(url, tool_info, server_info, success, test_results, server_info.start_time, evaluation_result)
             
             # 4.5. 数据库导出 (可选)
             if config.db_export:
-                self._export_to_database(report_files.get('json'), report_files)
+                self._export_to_database(report_files.get('json'), evaluation_result=evaluation_result)
             
             # 5. 清理资源
             if config.cleanup:
@@ -67,6 +133,10 @@ class CLIHandler:
     def test_package(self, package: str, config: TestConfig) -> bool:
         """测试包 - 统一流程"""
         try:
+            # 查找工具信息
+            parser, _ = self.tester._get_services()
+            tool_info = parser.find_tool_by_package(package)
+
             # 直接部署包
             server_info = self.tester.deploy_tool(package, config.timeout)
             if not server_info:
@@ -76,16 +146,24 @@ class CLIHandler:
             self._display_deployment_success(server_info, package)
             
             # 执行测试 - 统一逻辑，支持smart模式
-            success, test_results = self._run_tests(None, server_info, config)
+            success, test_results = self._run_tests(tool_info, server_info, config)
             
+            # 评估工具
+            evaluation_result = None
+            if config.evaluate and tool_info and tool_info.github_url:
+                rprint("[blue]🔍 正在评估工具...[/blue]")
+                evaluation_result = evaluate_full_repository_profile(tool_info.github_url)
+                if evaluation_result and evaluation_result.get("status") == "success":
+                    self._display_evaluation_result(evaluation_result)
+
             # 生成报告（如果需要）
             report_files = {}
             if config.save_report:
-                report_files = self._save_report(package, None, server_info, success, test_results, server_info.start_time)
+                report_files = self._save_report(package, tool_info, server_info, success, test_results, server_info.start_time, evaluation_result)
             
             # 数据库导出 (如果需要)
             if config.db_export:
-                self._export_to_database(report_files.get('json'), report_files)
+                self._export_to_database(report_files.get('json'), evaluation_result=evaluation_result)
             
             # 清理
             if config.cleanup:
@@ -174,7 +252,7 @@ class CLIHandler:
         
         return self.tester.run_basic_test(server_info, config.timeout)
     
-    def _save_report(self, url: str, tool_info: MCPToolInfo, server_info, success: bool, test_results, start_time):
+    def _save_report(self, url: str, tool_info: MCPToolInfo, server_info, success: bool, test_results, start_time, evaluation_result: Optional[dict] = None):
         """保存报告 - 单一职责"""
         try:
             rprint("[blue]📊 生成测试报告...[/blue]")
@@ -186,6 +264,7 @@ class CLIHandler:
                 test_success=success,
                 duration=time.time() - start_time,
                 test_results=test_results,
+                evaluation_result=evaluation_result,
                 formats=['json', 'html']
             )
             
@@ -198,7 +277,7 @@ class CLIHandler:
             rprint(f"[red]❌ 报告生成失败: {e}[/red]")
             return {}
     
-    def _export_to_database(self, json_report_path: str, result: dict = None):
+    def _export_to_database(self, json_report_path: str, evaluation_result: Optional[dict] = None):
         """导出到数据库 - MVP版本"""
         if not json_report_path:
             rprint("[yellow]⚠️ 没有JSON报告，跳过数据库导出[/yellow]")
@@ -207,13 +286,11 @@ class CLIHandler:
         try:
             rprint("[blue]🗄️ 导出结果到数据库...[/blue]")
             
-            # 使用与database_examples.py相同的方式
             import os
             from supabase import create_client
             import json
             from datetime import datetime
             
-            # 获取数据库配置 - 使用环境变量
             supabase_url = os.getenv('SUPABASE_URL')
             supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
             
@@ -221,36 +298,33 @@ class CLIHandler:
                 rprint("[yellow]⚠️ 数据库配置未设置 (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)，跳过数据库导出[/yellow]")
                 return
             
-            # 创建Supabase客户端 - 与database_examples.py相同的方式
             client = create_client(supabase_url, supabase_key)
-            rprint("[green]✅ Supabase客户端连接成功[/green]")
             
-            # 读取JSON报告
             with open(json_report_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
             
-            # 计算整体测试成功状态 - 基于实际JSON结构和成功率标准
             deployment_ok = json_data.get('deployment_success', False)
             communication_ok = json_data.get('communication_success', False)
             test_results = json_data.get('test_results', [])
             
-            # 计算测试成功率 - 50%或以上即认为成功
             if test_results:
                 passed_tests = sum(1 for test in test_results if test.get('success', False))
                 success_rate = (passed_tests / len(test_results)) * 100
-                tests_successful = success_rate >= 50.0  # 50%或以上认为成功
+                tests_successful = success_rate >= 50.0
             else:
                 tests_successful = False
                 
             overall_success = deployment_ok and communication_ok and tests_successful
             
-            # 转换为数据库记录格式 - 匹配实际数据库表结构
+            # 获取工具信息（如果存在）
+            tool_info = json_data.get('tool_info', {})
+            
             record = {
                 'test_timestamp': datetime.now().isoformat(),
-                'tool_identifier': json_data.get('tool_info', {}).get('github_url', '') if json_data.get('tool_info') else json_data.get('test_url', ''),
-                'tool_name': json_data.get('tool_info', {}).get('name', 'Unknown') if json_data.get('tool_info') else json_data.get('tool_name', 'Unknown'),
-                'tool_author': json_data.get('tool_info', {}).get('author', '') if json_data.get('tool_info') else '',
-                'tool_category': json_data.get('tool_info', {}).get('category', '') if json_data.get('tool_info') else '',
+                'tool_identifier': tool_info.get('github_url', '') if tool_info else json_data.get('test_url', ''),
+                'tool_name': tool_info.get('name', 'Unknown') if tool_info else json_data.get('tool_name', 'Unknown'),
+                'tool_author': tool_info.get('author', '') if tool_info else '',
+                'tool_category': tool_info.get('category', '') if tool_info else '',
                 'test_success': overall_success,
                 'deployment_success': json_data.get('deployment_success', False),
                 'communication_success': json_data.get('communication_success', False),
@@ -261,19 +335,34 @@ class CLIHandler:
                 'environment_info': {'platform': json_data.get('platform_info', 'Unknown')}
             }
             
-            # 插入数据库 - 使用与database_examples.py相同的方式
+            # 添加LobeHub评分信息（如果工具信息中有）
+            if tool_info:
+                record.update({
+                    'lobehub_url': tool_info.get('lobehub_url'),
+                    'lobehub_evaluate': tool_info.get('lobehub_evaluate'),
+                    'lobehub_score': tool_info.get('lobehub_score'),
+                    'lobehub_star_count': tool_info.get('lobehub_star_count'),
+                    'lobehub_fork_count': tool_info.get('lobehub_fork_count'),
+                })
+
+            if evaluation_result and evaluation_result.get("status") == "success":
+                record['final_score'] = evaluation_result['final_score']
+                record['sustainability_score'] = evaluation_result['sustainability']['total_score']
+                record['popularity_score'] = evaluation_result['popularity']['total_score']
+                record['sustainability_details'] = evaluation_result['sustainability']['details']
+                record['popularity_details'] = evaluation_result['popularity']['details']
+                record['evaluation_timestamp'] = datetime.now().isoformat()
+
+            rprint(f"[dim]Dumping to database: {record}[/dim]")
             response = client.table('mcp_test_results').insert(record).execute()
             
             if response.data:
                 rprint("[green]✅ 数据库导出成功 - 记录已保存到 mcp_test_results 表[/green]")
-                rprint(f"[dim]   工具: {record['tool_name']}[/dim]")
-                rprint(f"[dim]   成功: {'✅' if record['test_success'] else '❌'}[/dim]")
-                rprint(f"[dim]   耗时: {record['test_duration_seconds']:.1f}秒[/dim]")
             else:
-                rprint("[yellow]⚠️ 数据库导出可能失败，但不影响测试结果[/yellow]")
+                rprint(f"[red]❌ 数据库导出失败: {response.error.message if response.error else '未知错误'}[/red]")
                 
         except Exception as e:
-            rprint(f"[yellow]⚠️ 数据库导出异常: {e}[/yellow]")
+            rprint(f"[red]❌ 数据库导出异常: {e}[/red]")
             rprint("[dim]   检查 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY 环境变量[/dim]")
     
     def _cleanup_server(self, server_id: str):
@@ -292,6 +381,35 @@ class CLIHandler:
         rprint(f"[blue]📦 包名: {tool_info.package_name}[/blue]")
         rprint(f"[blue]📂 类别: {tool_info.category}[/blue]")
         rprint(f"[blue]📝 描述: {tool_info.description[:100]}...[/blue]")
+
+    def _display_evaluation_result(self, evaluation_result: dict):
+        """显示评估结果 - 统一格式"""
+        from rich.table import Table
+        from rich.console import Console
+
+        console = Console()
+        table = Table(title="MCP 工具评估结果")
+
+        table.add_column("类别", style="cyan", width=20)
+        table.add_column("指标", style="magenta", width=25)
+        table.add_column("分数", style="green", width=10)
+        table.add_column("原因", style="white", width=50)
+
+        sustainability = evaluation_result.get('sustainability', {})
+        popularity = evaluation_result.get('popularity', {})
+
+        table.add_row("总分", "", f"[bold]{evaluation_result.get('final_score')}[/bold]", "")
+        table.add_section()
+        table.add_row("[bold]可持续性[/bold]", "", f"[bold]{sustainability.get('total_score')}[/bold]", "")
+        for metric, data in sustainability.get('details', {}).items():
+            table.add_row("", metric, str(data.get('score')), data.get('reason'))
+        
+        table.add_section()
+        table.add_row("[bold]受欢迎程度[/bold]", "", f"[bold]{popularity.get('total_score')}[/bold]", "")
+        for metric, data in popularity.get('details', {}).items():
+            table.add_row("", metric, str(data.get('score')), data.get('reason'))
+
+        console.print(table)
     
     def _display_deployment_success(self, server_info, package_name=None):
         """显示部署成功信息 - 统一格式"""

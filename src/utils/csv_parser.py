@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from rich.console import Console
 
 console = Console()
@@ -26,16 +26,23 @@ class MCPToolInfo:
     author: str
     github_url: str
     description: str
-    category: str
+    deployment_method: str
+    category: str = ""
     package_name: Optional[str] = None
     requires_api_key: bool = False
     install_command: Optional[str] = None
     run_command: Optional[str] = None
-    api_requirements: List[str] = None
+    api_requirements: List[str] = field(default_factory=list)
+    final_score: Optional[int] = None
+    sustainability_score: Optional[int] = None
+    popularity_score: Optional[int] = None
     
-    def __post_init__(self):
-        if self.api_requirements is None:
-            self.api_requirements = []
+    # LobeHub评分信息
+    lobehub_url: Optional[str] = None
+    lobehub_evaluate: Optional[str] = None      # 优质/良好/欠佳
+    lobehub_score: Optional[float] = None       # 具体评分数字
+    lobehub_star_count: Optional[int] = None    # GitHub星标数
+    lobehub_fork_count: Optional[int] = None    # GitHub分支数
 
 class MCPDataParser:
     """MCP数据解析器"""
@@ -44,6 +51,61 @@ class MCPDataParser:
         self.csv_path = Path(csv_path)
         self.df = None
         self.tools_cache = {}
+    
+    def normalize_field_names(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        将mcp.csv的字段名标准化为期望的字段名
+        这样可以统一处理两种CSV格式，消除特殊情况
+        """
+        import json
+        
+        # mcp.csv -> expected field mapping
+        field_mapping = {
+            'extracted_deployment_methods': 'deployment_method', 
+            'extracted_requires_api_key': 'requires_api_key',
+            'extracted_use_cases': 'use_cases'
+        }
+        
+        normalized = {}
+        for key, value in row.items():
+            # Use mapping if exists, otherwise keep original key
+            normalized_key = field_mapping.get(key, key)
+            normalized[normalized_key] = value
+            
+        # Extract install_command and run_command from extracted_mcp_config
+        if 'extracted_mcp_config' in row and pd.notna(row['extracted_mcp_config']):
+            try:
+                config_str = str(row['extracted_mcp_config']).strip()
+                if config_str:
+                    config = json.loads(config_str)
+                    if 'install_command' in config:
+                        normalized['install_command'] = config['install_command']
+                    if 'run_command' in config:
+                        normalized['run_command'] = config['run_command']
+            except (json.JSONDecodeError, Exception) as e:
+                console.print(f"[yellow]⚠️ 解析mcp_config失败: {e}[/yellow]")
+        
+        # Handle special cases for deployment_method 
+        if 'deployment_method' in normalized and pd.notna(normalized['deployment_method']):
+            # Extract the first deployment method if multiple exist
+            deploy_val = str(normalized['deployment_method'])
+            if 'npm' in deploy_val.lower() or 'npx' in deploy_val.lower():
+                normalized['deployment_method'] = 'npx'
+            elif 'pip' in deploy_val.lower():
+                normalized['deployment_method'] = 'pip'
+            else:
+                normalized['deployment_method'] = 'npx'  # default
+        else:
+            normalized['deployment_method'] = 'npx'  # default for missing values
+            
+        # Handle API key requirements
+        if 'requires_api_key' in normalized:
+            api_key_val = str(normalized['requires_api_key']).lower()
+            normalized['requires_api_key'] = api_key_val in ['true', '1', 'yes', 'required']
+        else:
+            normalized['requires_api_key'] = False
+            
+        return normalized
         
     def load_data(self) -> bool:
         """加载CSV数据"""
@@ -53,7 +115,8 @@ class MCPDataParser:
                 return False
             
             console.print(f"[blue]📊 加载MCP数据: {self.csv_path}[/blue]")
-            self.df = pd.read_csv(self.csv_path)
+            # 直接使用pandas读取CSV，更加稳定可靠
+            self.df = pd.read_csv(self.csv_path, encoding='utf-8')
             console.print(f"[green]✅ 成功加载 {len(self.df)} 条MCP工具记录[/green]")
             return True
             
@@ -61,104 +124,69 @@ class MCPDataParser:
             console.print(f"[red]❌ 加载CSV数据失败: {e}[/red]")
             return False
     
-    def extract_package_name(self, mcp_config: str) -> Optional[str]:
-        """从MCP配置中提取包名（优先使用run_command）"""
-        if not mcp_config or pd.isna(mcp_config):
+    def extract_package_name(self, install_command: str, run_command: str, deployment_method: str) -> Optional[str]:
+        """从命令中提取包名"""
+        if deployment_method not in ['npm', 'npx']:
             return None
-            
-        try:
-            # 尝试解析JSON配置
-            config_data = json.loads(mcp_config)
-            
-            # 优先检查run_command（这是实际执行命令）
-            run_cmd = config_data.get('run_command', '')
-            if 'npx -y' in run_cmd:
-                match = re.search(r'npx -y ([^\s]+)', run_cmd)
-                if match:
-                    return match.group(1)
-            
-            # 检查cline_config中的args
-            cline_config = config_data.get('cline_config', {})
-            if isinstance(cline_config, dict):
-                args = cline_config.get('args', [])
-                if isinstance(args, list) and len(args) >= 2 and args[0] == '-y':
-                    return args[1]
-            
-            # 最后检查install_command（可能是安装器而非实际包）
-            install_cmd = config_data.get('install_command', '')
-            if 'npx -y' in install_cmd and '@smithery/cli' not in install_cmd:
-                # 避免Smithery安装器被误认为是包名
-                match = re.search(r'npx -y ([^\s]+)', install_cmd)
-                if match:
-                    return match.group(1)
-                    
-        except (json.JSONDecodeError, KeyError, AttributeError):
-            pass
+
+        command = run_command if pd.notna(run_command) and run_command else install_command
+        if pd.isna(command) or not command:
+            return None
+
+        # Regex to find package names, including scoped packages
+        match = re.search(r'(?:npx -y |@)[^\s@/]+(?:/[^\s@]+)?', command)
+        if match:
+            return match.group(0).replace('npx -y ', '').strip()
         
+        # Fallback for simple npm install commands
+        match = re.search(r'npm install -g ([^\s]+)', command)
+        if match:
+            return match.group(1).strip()
+
         return None
-    
+
     def parse_tool(self, row) -> Optional[MCPToolInfo]:
         """解析单个工具信息"""
         try:
-            # 基础信息
-            name = str(row.get('name', '')).strip()
-            if not name or name == 'nan':
+            # 标准化字段名
+            normalized_row = self.normalize_field_names(dict(row))
+            
+            name = str(normalized_row.get('name', '')).strip()
+            if not name or pd.isna(name):
                 return None
-                
-            url = str(row.get('url', '')).strip()
-            author = str(row.get('author', '')).strip()
-            github_url = str(row.get('github_url', '')).strip()
-            description = str(row.get('description', '')).strip()
-            category = str(row.get('type', '其他')).strip()
-            
-            # 解析包名
-            mcp_config = str(row.get('extracted_mcp_config', ''))
-            package_name = self.extract_package_name(mcp_config)
-            
-            # 解析API密钥需求
-            requires_api_key = False
-            api_requirements = []
-            
-            api_req_str = str(row.get('extracted_api_requirements', ''))
-            if api_req_str and api_req_str != 'nan':
-                try:
-                    api_data = json.loads(api_req_str)
-                    if isinstance(api_data, dict):
-                        required_keys = api_data.get('required_keys', [])
-                        if required_keys:
-                            requires_api_key = True
-                            api_requirements = required_keys
-                except (json.JSONDecodeError, KeyError):
-                    pass
-            
-            # 提取安装和运行命令
-            install_command = None
-            run_command = None
-            
-            if mcp_config and mcp_config != 'nan':
-                try:
-                    config_data = json.loads(mcp_config)
-                    install_command = config_data.get('install_command')
-                    run_command = config_data.get('run_command')
-                except (json.JSONDecodeError, KeyError):
-                    pass
-            
+
+            install_command = str(normalized_row.get('install_command', '')).strip()
+            package_name = self.extract_package_name(
+                install_command, 
+                normalized_row.get('run_command'),
+                normalized_row.get('deployment_method')
+            )
+
             return MCPToolInfo(
                 name=name,
-                url=url,
-                author=author,
-                github_url=github_url,
-                description=description,
-                category=category,
+                url=str(normalized_row.get('url', '')).strip(),
+                author=str(normalized_row.get('author', '')).strip(),
+                github_url=str(normalized_row.get('github_url', '')).strip(),
+                description=str(normalized_row.get('description', '')).strip(),
+                deployment_method=str(normalized_row.get('deployment_method', '')).strip(),
                 package_name=package_name,
-                requires_api_key=requires_api_key,
+                requires_api_key=bool(normalized_row.get('requires_api_key')),
                 install_command=install_command,
-                run_command=run_command,
-                api_requirements=api_requirements
+                run_command=str(normalized_row.get('run_command', '')).strip(),
+                final_score=pd.to_numeric(normalized_row.get('final_score'), errors='coerce'),
+                sustainability_score=pd.to_numeric(normalized_row.get('sustainability_score'), errors='coerce'),
+                popularity_score=pd.to_numeric(normalized_row.get('popularity_score'), errors='coerce'),
+                
+                # LobeHub评分信息 
+                lobehub_url=str(normalized_row.get('url', '')).strip() if pd.notna(normalized_row.get('url')) else None,
+                lobehub_evaluate=str(normalized_row.get('evaluate', '')).strip() if pd.notna(normalized_row.get('evaluate')) else None,
+                lobehub_score=pd.to_numeric(normalized_row.get('Unnamed: 5'), errors='coerce'),
+                lobehub_star_count=pd.to_numeric(normalized_row.get('star_count'), errors='coerce'),
+                lobehub_fork_count=pd.to_numeric(normalized_row.get('fork_count'), errors='coerce'),
             )
             
         except Exception as e:
-            console.print(f"[yellow]⚠️ 解析工具信息失败: {e}[/yellow]")
+            console.print(f"[yellow]⚠️ 解析工具信息失败: {e} for row {row}[/yellow]")
             return None
     
     def get_all_tools(self) -> List[MCPToolInfo]:
@@ -170,7 +198,7 @@ class MCPDataParser:
         tools = []
         for _, row in self.df.iterrows():
             tool = self.parse_tool(row)
-            if tool and tool.package_name:  # 只返回有包名的工具
+            if tool:
                 tools.append(tool)
         
         console.print(f"[green]📦 解析出 {len(tools)} 个可部署的MCP工具[/green]")
@@ -182,27 +210,37 @@ class MCPDataParser:
             if not self.load_data():
                 return None
         
-        # 直接匹配URL
-        matches = self.df[self.df['url'] == url]
+        matches = self.df[self.df['github_url'] == url]
         if not matches.empty:
             return self.parse_tool(matches.iloc[0])
-        
-        # 模糊匹配URL中的关键部分
-        url_parts = url.split('/')
-        if len(url_parts) > 0:
-            key_part = url_parts[-1]  # 取URL最后一部分
-            matches = self.df[self.df['url'].str.contains(key_part, na=False)]
-            if not matches.empty:
-                return self.parse_tool(matches.iloc[0])
         
         return None
     
     def find_tool_by_package(self, package_name: str) -> Optional[MCPToolInfo]:
-        """根据包名查找工具"""
+        """根据包名查找工具 - 支持模糊匹配"""
         tools = self.get_all_tools()
+        
+        # 1. 精确匹配
         for tool in tools:
             if tool.package_name == package_name:
                 return tool
+        
+        # 2. 包含匹配 (去掉版本号)
+        clean_package = package_name.split('@')[0]  # 移除版本号
+        for tool in tools:
+            if tool.package_name and clean_package in tool.package_name:
+                return tool
+        
+        # 3. 通过install_command匹配
+        for tool in tools:
+            if tool.install_command and clean_package in tool.install_command:
+                return tool
+                
+        # 4. 通过run_command匹配
+        for tool in tools:
+            if tool.run_command and clean_package in tool.run_command:
+                return tool
+        
         return None
     
     def get_tools_by_category(self, category: str) -> List[MCPToolInfo]:
